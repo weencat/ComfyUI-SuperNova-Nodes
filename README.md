@@ -1,4 +1,4 @@
-这个插件节点参考了comfyui处著名的插件节点里的部分子节点并整合在一起.
+这个插件节点参考了comfyui各位著名的插件节点里的部分子节点并整合在一起.
 
 This plugin node references and integrates some child nodes from the famous plugin node in Comfyui.
 -------------------------------------------------------------------------------------------------
