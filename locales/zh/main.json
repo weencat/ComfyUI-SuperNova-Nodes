@@ -1,0 +1,12 @@
+{
+  "nodeCategories": {
+    "🪐supernova":"🪐超新星",
+    "ImageLoader":"图像读取器",
+    "ImageSaver":"图像保存器",
+    "LoRALoader":"图像加载器",
+    "Switches":"多路交换机",
+    "XY Plot":"XY图表",
+    "ImageMetadata": "图像元数据",
+    "MetadataSeries": "元数据系列"
+  }
+}

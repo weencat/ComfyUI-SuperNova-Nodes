@@ -1,0 +1,780 @@
+{
+    "SaveImageToInput": {
+        "display_name": "保存图群(输出)",
+        "inputs": {
+            "images": {
+                "name": "图像"
+            },
+            "filename_prefix": {
+                "name": "文件名前缀"
+            },
+            "save_to_reload": {
+                "name": "保存到reload文件夹"
+            }
+        }
+    },
+    "LoadImageFromReload": {
+        "display_name": "读取图群(reload文件夹)",
+        "inputs": {
+            "image": {
+                "name": "图像"
+            }
+        }
+    },
+    "LoadImageWithSubfolders": {
+        "display_name": "读取图群(子文件夹)",
+        "inputs": {
+            "image": {
+                "name": "图像"
+            }
+        }
+    },
+    "LoadImageUnified": {
+        "display_name": "读取图群(全图片)",
+        "inputs": {
+            "image": {
+                "name": "图像"
+            },
+            "Auto-refresh after generation": {
+                "name": "生成后自动刷新"
+            },
+            "refresh": {
+                "name": "刷新"
+            }
+        }
+    },
+    "AnyMultiSwitchScalable": {
+        "display_name": "多路式交换机",
+        "inputs": {
+            "input1": {
+                "name": "输入1"
+            }
+        }
+    },
+    "ImageStorageNode": {
+        "display_name": "🔵BB同尺寸图像容器(批次)",
+        "inputs": {
+            "image": {
+                "name": "图像"
+            },
+            "clear": {
+                "name": "清除"
+            },
+            "replace_last": {
+                "name": "替换最后一个"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "最后一张图像"
+            },
+            "1": {
+                "name": "总数"
+            },
+            "2": {
+                "name": "所有图像"
+            }
+        }
+    },
+    "XY Plot KSampler": {
+        "display_name": "XY图(K采样器)",
+        "inputs": {
+            "model": {
+                "name": "模型"
+            },
+            "clip": {
+                "name": "CLIP"
+            },
+            "vae": {
+                "name": "VAE"
+            },
+            "positive_text": {
+                "name": "正面提示词"
+            },
+            "negative_text": {
+                "name": "负面提示词"
+            },
+            "latent_image": {
+                "name": "Latent"
+            },
+            "seed": {
+                "name": "随机种"
+            },
+            "steps": {
+                "name": "步数"
+            },
+            "cfg": {
+                "name": "提示词相关性"
+            },
+            "sampler_name": {
+                "name": "采样器名称"
+            },
+            "scheduler": {
+                "name": "调度器"
+            },
+            "denoise": {
+                "name": "降噪"
+            },
+            "XY_PLOT_SETTINGS": {
+                "name": "XY图设置"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "XY列图"
+            },
+            "1": {
+                "name": "单张图像"
+            }
+        }
+    },
+    "XY Plot Settings": {
+        "display_name": "XY图格设置",
+        "inputs": {
+            "grid_spacing": {
+                "name": "网格间距"
+            },
+            "xy_flip": {
+                "name": "XY翻转"
+            },
+            "y_label_orientation": {
+                "name": "Y轴标签方向"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "XY图设置"
+            }
+        }
+    },
+    "XY Input: Seeds": {
+        "display_name": "XY输入(种子)",
+        "inputs": {
+            "batch_count": {
+                "name": "批次数"
+            }
+        }
+    },
+    "XY Input: Steps": {
+        "display_name": "XY输入(步数)",
+        "inputs": {
+            "batch_count": {
+                "name": "批次数"
+            },
+            "first_step": {
+                "name": "起始步数"
+            },
+            "last_step": {
+                "name": "结束步数"
+            }
+        }
+    },
+    "XY Input: CFG": {
+        "display_name": "XY输入(CFG)",
+        "inputs": {
+            "batch_count": {
+                "name": "批次数"
+            },
+            "first_cfg": {
+                "name": "起始CFG"
+            },
+            "last_cfg": {
+                "name": "结束CFG"
+            }
+        }
+    },
+    "XY Input: Sampler/Scheduler": {
+        "display_name": "XY输入(采样器/调度器)",
+        "inputs": {
+            "target_parameter": {
+                "name": "目标参数"
+            },
+            "input_count": {
+                "name": "输入数量"
+            },
+            "scheduler_1": {
+                "name": "调度器1"
+            },
+            "Sampler_1": {
+                "name": "采样器1"
+            }
+        }
+    },
+    "XY Input: Denoise": {
+        "display_name": "XY输入(降噪)",
+        "inputs": {
+            "batch_count": {
+                "name": "批次数"
+            },
+            "first_denoise": {
+                "name": "起始降噪"
+            },
+            "last_denoise": {
+                "name": "结束降噪"
+            }
+        }
+    },
+    "XY Input: LoRA Batch": {
+        "display_name": "XY输入：LoRA批处理(路径)",
+        "inputs": {
+            "batch_path": {
+                "name": "批处理路径"
+            },
+            "subdirectories": {
+                "name": "子目录"
+            },
+            "batch_sort": {
+                "name": "批处理排序"
+            },
+            "batch_max": {
+                "name": "批处理最大值"
+            },
+            "model_strength": {
+                "name": "模型强度"
+            },
+            "clip_strength": {
+                "name": "剪辑强度"
+            }
+        }
+    },
+    "XY Input: LoRA Plot": {
+        "display_name": "XY输入：LoRA图",
+        "inputs": {
+            "input_mode": {
+                "name": "输入模式"
+            },
+            "model_strength": {
+                "name": "模型强度"
+            },
+            "clip_strength": {
+                "name": "clip强度"
+            },
+            "lora_name": {
+                "name": "lora模型"
+            },
+            "X_batch_path": {
+                "name": "X路径"
+            },
+            "X_batch_count": {
+                "name": "X轴批次数"
+            },
+            "X_subdirectories": {
+                "name": "X轴子目录"
+            },
+            "X_batch_sort": {
+                "name": "X轴批处理排序"
+            },
+            "X_first_value": {
+                "name": "X轴起始值"
+            },
+            "X_last_value": {
+                "name": "X轴结束值"
+            },
+            "Y_batch_count": {
+                "name": "Y轴批次数"
+            },
+            "Y_first_value": {
+                "name": "Y轴起始值"
+            },
+            "Y_last_value": {
+                "name": "Y轴结束值"
+            }
+        }
+    },
+    "AxisWithRingNode": {
+        "display_name": "带环轴节点"
+    },
+    "ImageFileReader": {
+        "display_name": "蓝波球的图片文件读取器",
+        "inputs": {
+            "folder1_path": {
+                "name": "文件夹1路径"
+            },
+            "folder2_path": {
+                "name": "文件夹2路径"
+            },
+            "file_name": {
+                "name": "文件名"
+            },
+            "file_extension": {
+                "name": "文件扩展名"
+            }
+        }
+    },
+    "TXTAndImageReader": {
+        "display_name": "蓝波球的TXT与图片读取器",
+        "inputs": {
+            "txt_folder_path": {
+                "name": "txt文件夹路径"
+            },
+            "image_folder_path": {
+                "name": "图片文件夹路径"
+            },
+            "file_name": {
+                "name": "文件名"
+            },
+            "image_extension": {
+                "name": "图片扩展名"
+            }
+        }
+    },
+    "TXTFileReader": {
+        "display_name": "蓝波球的TXT文件读取器",
+        "inputs": {
+            "folder1_path": {
+                "name": "文件夹1路径"
+            },
+            "folder2_path": {
+                "name": "文件夹2路径"
+            },
+            "file_name": {
+                "name": "文件名"
+            }
+        }
+    },
+    "LoadImagewithSubfolders": {
+        "display_name": "加载图片上传"
+    },
+    "LoraLoaderWithPathStack": {
+        "display_name": "从路径加载 LoRA",
+        "inputs": {
+            "lora_path": {
+                "name": "LoRA路径"
+            },
+            "strength_model": {
+                "name": "模型强度"
+            },
+            "strength_clip": {
+                "name": "CLIP强度"
+            },
+            "model": {
+                "name": "模型"
+            },
+            "clip": {
+                "name": "CLIP"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "模型"
+            }
+        }
+    },
+    "SaveImageWithSound": {
+        "display_name": "保存图像(提示音)🔊",
+        "inputs": {
+            "images": {
+                "name": "图像"
+            },
+            "filename_prefix": {
+                "name": "文件名前缀",
+                "tooltip": "｛date｝为年-月-日,｛time｝为时-分-秒,｛datetime｝年-月-日_时-分-秒."
+            },
+            "sound_file": {
+                "name": "声音文件"
+            },
+            "volume": {
+                "name": "音量"
+            }
+        }
+    },
+    "ReadPngInfoFromImage": {
+        "display_name": "读取PNG图片信息📄",
+        "images": {
+            "name": "图像"
+        },
+        "outputs": {
+            "0": {
+                "name": "图片元数据"
+            }
+        }
+    },
+    "ReadMetaFromFilePillow": {
+        "display_name": "从图像文件读取元数据🖼️",
+        "outputs": {
+            "0": {
+                "name": "图片元数据"
+            }
+        }
+    },
+    "ImageMetadataSettings": {
+        "display_name": "元数据设置🛠️",
+        "inputs": {
+            "filename": {
+                "name": "文件名前缀",
+                "tooltip": "原时间格式:｛date｝为年-月-日,｛time｝为时-分-秒,｛datetime｝年-月-日_时-分-秒.\n当接入元数据设置时使用的格式\n%date:年-月-日(%Y-%m-%d)\n%time:时分秒(%H%M%S)\n%model:设置的模型名称\n%width:设置的宽度数\n%height:设置的高度数\n%seed:设置的随机种数\n%sampler_name:设置的采样器名称\n%steps:设置的步数\n%cfg:设置的CFG数\n%scheduler_name:设置的调度器名称\n%basemodelname:设置的基础模型名称"
+            },
+            "positive": {
+                "name": "正面提示词"
+            },
+            "multiline": {
+                "name": "多行文本"
+            },
+            "cfg": {
+                "name": "CFG"
+            },
+            "sampler_name": {
+                "name": "采样器名称"
+            },
+            "scheduler_name": {
+                "name": "调度器名称"
+            },
+            "width": {
+                "name": "宽度"
+            },
+            "height": {
+                "name": "高度"
+            },
+            "time_format": {
+                "name": "时间格式"
+            },
+            "modelname": {
+                "name": "模型名称"
+            },
+            "seed_value": {
+                "name": "随机种"
+            },
+            "steps": {
+                "name": "步数"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "元数据"
+            }
+        }
+    },
+    "MetadataFilenameSettings": {
+        "display_name": "元数据-文件名⚙️",
+        "inputs": {
+            "filename": {
+                "name": "文件名前缀",
+                "tooltip": "原时间格式:｛date｝为年-月-日,｛time｝为时-分-秒,｛datetime｝年-月-日_时-分-秒.\n当接入元数据设置时使用的格式\n%date:年-月-日(%Y-%m-%d)\n%time:时分秒(%H%M%S)\n%model:设置的模型名称\n%width:设置的宽度数\n%height:设置的高度数\n%seed:设置的随机种数\n%sampler_name:设置的采样器名称\n%steps:设置的步数\n%cfg:设置的CFG数\n%scheduler_name:设置的调度器名称\n%basemodelname:设置的基础模型名称"
+            },
+            "time_format": {
+                "name": "时间格式"
+            },
+            "METADATA": {
+                "name": "元数据"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "元数据"
+            }
+        }
+    },
+    "MetadataPromptsSettings": {
+        "display_name": "元数据-提示词⚙️",
+        "inputs": {
+            "positive": {
+                "name": "正面提示词"
+            },
+            "negative": {
+                "name": "负面提示词"
+            },
+            "METADATA": {
+                "name": "元数据"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "元数据"
+            }
+        }
+    },
+    "MetadataSamplingSettings": {
+        "display_name": "元数据-生成器⚙️",
+        "inputs": {
+            "steps": {
+                "name": "步数"
+            },
+            "seed": {
+                "name": "随机种"
+            },
+            "cfg": {
+                "name": "CFG"
+            },
+            "sampler_name": {
+                "name": "采样器名称"
+            },
+            "scheduler_name": {
+                "name": "调度器名称"
+            },
+            "METADATA": {
+                "name": "元数据"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "元数据"
+            }
+        }
+    },
+    "MetadataDimensionsSettings": {
+        "display_name": "元数据-尺寸⚙️",
+        "inputs": {
+            "width": {
+                "name": "宽度"
+            },
+            "height": {
+                "name": "高度"
+            },
+            "METADATA": {
+                "name": "元数据"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "元数据"
+            }
+        }
+    },
+    "CombineMetadata": {
+        "display_name": "合并元数据📦",
+        "inputs": {
+            "METADATA_a": {
+                "name": "元数据_a"
+            },
+            "METADATA_b": {
+                "name": "元数据_b"
+            },
+            "METADATA_c": {
+                "name": "元数据_c"
+            },
+            "METADATA_d": {
+                "name": "元数据_d"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "元数据"
+            }
+        }
+    },
+    "SaveImageWithSoundAndMetadata": {
+        "display_name": "保存图像 (带元数据和声音) 🔊",
+        "inputs": {
+            "METADATA": {
+                "name": "元数据"
+            },
+            "sound_file": {
+                "name": "声音文件"
+            },
+            "volume": {
+                "name": "音量"
+            },
+            "filename_prefix": {
+                "name": "文件名前缀",
+                "tooltip": "原时间格式:｛date｝为年-月-日,｛time｝为时-分-秒,｛datetime｝年-月-日_时-分-秒.\n当接入元数据设置时使用的格式\n%date:年-月-日(%Y-%m-%d)\n%time:时分秒(%H%M%S)\n%model:设置的模型名称\n%width:设置的宽度数\n%height:设置的高度数\n%seed:设置的随机种数\n%sampler_name:设置的采样器名称\n%steps:设置的步数\n%cfg:设置的CFG数\n%scheduler_name:设置的调度器名称\n%basemodelname:设置的基础模型名称"
+            }
+        }
+    },
+    "XY_Input_Sampler_List_Builder": {
+        "display_name": "XY输入：添加采样器",
+        "inputs": {
+            "sampler_name": {
+                "name": "采样器名称"
+            },
+            "previous_list": {
+                "name": "采样器列表"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "采样器列表"
+            },
+            "1": {
+                "name": "X或Y"
+            }
+        }
+    },
+    "XY_Input_Scheduler_List_Builder": {
+        "display_name": "XY输入：添加调度器",
+        "inputs": {
+            "scheduler_name": {
+                "name": "调度器名称"
+            },
+            "previous_list": {
+                "name": "调度器列表"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "调度器列表"
+            },
+            "1": {
+                "name": "X或Y"
+            }
+        }
+    },
+    "XY_Input_Sampler_Scheduler_Builder": {
+        "display_name": "XY输入：添加采样器/调度器",
+        "inputs": {
+            "mode": {
+                "name": "模式"
+            },
+            "sampler_name": {
+                "name": "采样器名称"
+            },
+            "scheduler_name": {
+                "name": "调度器名称"
+            },
+            "previous_list": {
+                "name": "合并列表"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "合并列表"
+            },
+            "1": {
+                "name": "X或Y"
+            }
+        }
+    },
+    "IntAndFloatHub_Node": {
+        "display_name": "整数与浮点数控制器",
+        "inputs": {
+            "INT": {
+                "name": "整数"
+            },
+            "float": {
+                "name": "浮点数"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "整数"
+            },
+            "1": {
+                "name": "浮点数"
+            }
+        }
+    },
+    "KSamplerSettings_Standard": {
+        "display_name": "KSampler设置",
+        "inputs": {
+            "seed": {
+                "name": "随机种"
+            },
+            "steps": {
+                "name": "步数"
+            },
+            "cfg": {
+                "name": "CFG"
+            },
+            "sampler_name": {
+                "name": "采样器"
+            },
+            "scheduler": {
+                "name": "调度器"
+            },
+            "denoise": {
+                "name": "降噪"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "随机种"
+            },
+            "1": {
+                "name": "步数"
+            },
+            "2": {
+                "name": "CFG"
+            },
+            "3": {
+                "name": "采样器"
+            },
+            "4": {
+                "name": "调度器"
+            },
+            "5": {
+                "name": "降噪"
+            }
+        }
+    },
+    "load_image_by_path": {
+        "display_name": "加载图像(路径)",
+        "inputs": {
+            "img_path": {
+                "name": "图像路径"
+            }
+        }
+    },
+    "SamplerSchedulerHubv2": {
+        "display_name": "采样器与调度器名",
+        "inputs": {
+            "sampler_name": {
+                "name": "采样器"
+            },
+            "scheduler": {
+                "name": "调度器"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "采样器名"
+            },
+            "1": {
+                "name": "调度器名"
+            }
+        }
+    },
+    "SimpleLoadVideoPath": {
+        "display_name": "简易视频加载器(路径)",
+        "inputs": {
+            "video_path": {
+                "name": "视频路径"
+            },
+            "frame_load_cap": {
+                "name": "最大加载帧数"
+            },
+            "skip_first_frames": {
+                "name": "跳过开头几帧"
+            },
+            "select_every_nth": {
+                "name": "每N帧选择一帧"
+            }
+        },
+        "outputs": {
+            "1": {
+                "name": "总帧数"
+            },
+            "2": {
+                "name": "帧率"
+            },
+            "3": {
+                "name": "宽度"
+            },
+            "4": {
+                "name": "高度"
+            }
+        }
+    },
+    "SimpleVideoCombine": {
+        "display_name": "简易视频保存器 🔊",
+        "inputs": {
+            "frame_rate": {
+                "name": "帧率"
+            },
+            "filename_prefix": {
+                "name": "文件名前缀"
+            },
+            "format": {
+                "name": "格式"
+            },
+            "quality": {
+                "name": "质量"
+            },
+            "sound_file": {
+                "name": "提示音文件"
+            },
+            "volume": {
+                "name": "提示音量"
+            }
+        }
+    },
+    "supernova": "🪐超新星节点"
+}
