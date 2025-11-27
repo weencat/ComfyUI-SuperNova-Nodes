@@ -52,7 +52,6 @@ async def fetch_video_preview(request):
     # 模式 B: 处理后的视频预览 (Index = 0)
     # ------------------------------------------------
     elif frame_index == 0:
-        # 生成唯一的哈希，包含所有参数，确保参数变了预览也会变
         param_str = f"{video_path}_{skip}_{nth}_{cap}"
         file_hash = hashlib.md5(param_str.encode()).hexdigest()[:8]
         temp_filename = f"preview_processed_{file_hash}.mp4"
@@ -60,11 +59,9 @@ async def fetch_video_preview(request):
         temp_dir = folder_paths.get_temp_directory()
         temp_path = os.path.join(temp_dir, temp_filename)
 
-        # 如果缓存存在，直接返回
         if os.path.exists(temp_path):
              return web.json_response({"filename": temp_filename, "type": "temp", "format": "video"})
 
-        # 生成处理后的视频
         try:
             reader = imageio.get_reader(video_path)
             meta = reader.get_meta_data()
@@ -83,7 +80,6 @@ async def fetch_video_preview(request):
             if len(frames_to_save) == 0:
                 return web.json_response({"error": "No frames found with current settings"}, status=400)
 
-            # 保存为临时 MP4 (快速编码)
             imageio.mimsave(temp_path, frames_to_save, fps=fps, format="mp4", codec="libx264", quality=5)
             
             return web.json_response({"filename": temp_filename, "type": "temp", "format": "video"})
@@ -94,9 +90,7 @@ async def fetch_video_preview(request):
     # 模式 C: 单帧预览 (Index > 0)
     # ------------------------------------------------
     else:
-        # 用户输入 1 代表第 0 帧，输入 2 代表第 1 帧
         real_index = frame_index - 1
-        
         file_hash = hashlib.md5(f"{video_path}_{real_index}".encode()).hexdigest()[:8]
         temp_filename = f"preview_frame_{file_hash}_{real_index}.png"
         temp_dir = folder_paths.get_temp_directory()
@@ -158,30 +152,41 @@ class SimpleVideoSaver:
     CATEGORY = "🪐supernova/video"
 
     def save_video(self, image, frame_rate, filename_prefix, format, quality, audio=None, sound_file="sound.mp3", volume=1.0):
+        # 1. 替换时间戳占位符
         now = datetime.now()
         filename_prefix = filename_prefix.replace("{date}", now.strftime("%Y-%m-%d"))
         filename_prefix = filename_prefix.replace("{time}", now.strftime("%H-%M-%S"))
         filename_prefix = filename_prefix.replace("{datetime}", now.strftime("%Y-%m-%d_%H-%M-%S"))
 
+        # 2. 获取路径信息
         full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(
             filename_prefix, self.output_dir, image[0].shape[1], image[0].shape[0]
         )
+
+        # >>> 修复1：确保文件夹存在 <<<
+        if not os.path.exists(full_output_folder):
+            try:
+                os.makedirs(full_output_folder, exist_ok=True)
+            except Exception as e:
+                print(f"[SimpleVideoSaver] Failed to create directory {full_output_folder}: {e}")
 
         image_np = (255. * image.cpu().numpy()).astype(np.uint8)
         results = []
         audio_path_arg = None
         temp_audio_file = None
         
+        # 3. 处理音频
         if audio is not None:
             try:
                 waveform = audio.get("waveform")
                 sample_rate = audio.get("sample_rate")
                 if waveform is not None:
-                    temp_audio_file = os.path.join(folder_paths.get_temp_directory(), f"temp_audio_{counter}.wav")
+                    temp_audio_file = os.path.join(folder_paths.get_temp_directory(), f"temp_audio_{filename}_{counter}.wav")
                     if waveform.dim() == 3: waveform = waveform[0]
                     torchaudio.save(temp_audio_file, waveform, sample_rate)
                     audio_path_arg = temp_audio_file
-            except: pass
+            except Exception as e:
+                print(f"[SimpleVideoSaver] Audio processing error: {e}")
 
         browser_friendly = False
         if "h264" in format or "webm" in format or "gif" in format or format == "image/webp" or format == "image/apng":
@@ -225,14 +230,18 @@ class SimpleVideoSaver:
             elif "nvenc" in writer_kwargs.get("codec", ""):
                 writer_kwargs["ffmpeg_params"] = ["-rc", "vbr", "-cq", "19" if quality=="high" else "23"]
 
-            file_name = f"{filename}_{counter:05}_{subfolder}" if subfolder else f"{filename}_{counter:05}"
+            # >>> 修复2：只使用文件名和计数器，不再拼接 subfolder <<<
+            # 之前是 f"{filename}_{counter:05}_{subfolder}"，这里的 subfolder 会导致路径错误
+            file_name = f"{filename}_{counter:05}"
             full_path = os.path.join(full_output_folder, file_name + f".{ext}")
 
             try:
                 imageio.mimsave(full_path, image_np, format=ext, **writer_kwargs)
             except Exception as e:
-                print(f"Save Error: {e}, fallback to cpu h264")
+                print(f"[SimpleVideoSaver] Save Error: {e}, fallback to cpu h264")
                 if "audio" in writer_kwargs: del writer_kwargs["audio"]
+                writer_kwargs.pop("codec", None)
+                writer_kwargs.pop("ffmpeg_params", None)
                 imageio.mimsave(full_path, image_np, format="mp4", fps=frame_rate)
                 browser_friendly = True
 
@@ -264,7 +273,7 @@ class SimpleVideoSaver:
 
 
 # ========================================================
-# 节点 2: SimpleLoadVideoPath (同步更新逻辑)
+# 节点 2: SimpleLoadVideoPath
 # ========================================================
 class SimpleLoadVideoPath:
     def __init__(self): pass
@@ -297,12 +306,8 @@ class SimpleLoadVideoPath:
         try: total_frames = reader.count_frames()
         except: total_frames = meta.get('nframes', 999999)
 
-        # ==========================
-        # 模式 A: 单帧提取 (>0)
-        # ==========================
         if select_frame_index > 0:
-            target_index = select_frame_index - 1 # 转换为 0-based 索引
-            
+            target_index = select_frame_index - 1
             if total_frames > 0 and target_index >= total_frames:
                 target_index = total_frames - 1
 
@@ -316,7 +321,6 @@ class SimpleLoadVideoPath:
             frame_norm = frame.astype(np.float32) / 255.0
             video_tensor = torch.from_numpy(frame_norm).unsqueeze(0)
             
-            # 预览图
             filename = os.path.basename(video_path)
             file_hash = hashlib.md5(video_path.encode()).hexdigest()[:8]
             preview_filename = f"preview_frame_{target_index}_{file_hash}.png"
@@ -329,13 +333,7 @@ class SimpleLoadVideoPath:
                 "result": (video_tensor, 1, int(fps), video_tensor.shape[2], video_tensor.shape[1], None)
             }
 
-        # ==========================
-        # 模式 B: 视频加载 (<=0)
-        # ==========================
         else:
-            # 如果 index == -1，返回原始视频链接
-            # 如果 index == 0，返回处理后的视频 (逻辑相同，只是预览不同，输出是一样的)
-            
             frames = []
             count = 0
             try:
@@ -357,12 +355,10 @@ class SimpleLoadVideoPath:
                 audio_output = {"waveform": waveform.unsqueeze(0), "sample_rate": sample_rate}
             except: pass
 
-            # 生成预览信息
             filename = os.path.basename(video_path)
             file_hash = hashlib.md5(video_path.encode()).hexdigest()[:8]
             
             if select_frame_index == 0:
-                # 生成处理后的预览视频
                 param_str = f"{video_path}_{skip_first_frames}_{select_every_nth}_{frame_load_cap}"
                 mod_hash = hashlib.md5(param_str.encode()).hexdigest()[:8]
                 temp_filename = f"preview_processed_{mod_hash}.mp4"
@@ -373,7 +369,6 @@ class SimpleLoadVideoPath:
                      frames_uint8 = (video_tensor.numpy() * 255).astype(np.uint8)
                      imageio.mimsave(temp_path, frames_uint8, fps=fps, format="mp4", codec="libx264", pixelformat="yuv420p", quality=5)
             else:
-                # 原始视频链接 (-1)
                 temp_filename = f"preview_original_{file_hash}_{filename}"
                 temp_dir = folder_paths.get_temp_directory()
                 temp_path = os.path.join(temp_dir, temp_filename)
