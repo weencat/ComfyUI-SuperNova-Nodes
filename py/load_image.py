@@ -309,7 +309,7 @@ class LoadImageUnified:
         return m.digest().hex()
 
 # ============================================================================
-# 节点 4: load_image_by_path (使用路径读取图片)
+# 节点 4: load_image_by_path (改为支持 temp 路径)
 # ============================================================================
 class load_image_by_path:
     @classmethod
@@ -320,52 +320,98 @@ class load_image_by_path:
             },
         }
 
-    RETURN_TYPES = ("IMAGE",)
-    RETURN_NAMES = ("image",)
+    RETURN_TYPES = ("IMAGE", "MASK")
+    RETURN_NAMES = ("image", "mask")
     FUNCTION = "load_all"
     CATEGORY = "🪐supernova/ImageLoader"
 
     def load_all(self, img_path):
-        if isinstance(img_path, str):
-            img_path = img_path.strip().strip('"').strip("'")
+        # 1. 基础清理
+        if img_path is None: img_path = ""
+        if not isinstance(img_path, str): img_path = str(img_path)
+        img_path = img_path.strip().strip('"').strip("'")
 
-        # 【核心修复】如果遮罩编辑器修改了路径为 clipspace/...，需要在这里拦截并修正路径
-        if not os.path.exists(img_path) and img_path.startswith("clipspace/"):
-            # 拼接出 clipspace 的真实绝对路径
-            clipspace_path = os.path.join(folder_paths.get_input_directory(), img_path)
-            if os.path.exists(clipspace_path):
-                img_path = clipspace_path
+        # 2. 路径解析逻辑 (支持 temp/ 前缀)
+        # 如果路径不存在，且以 temp/ 开头，说明是遮罩编辑器生成的临时文件
+        if img_path and not os.path.exists(img_path):
+            if img_path.startswith("temp/"):
+                # 提取文件名 (例如 temp/mask.png -> mask.png)
+                filename = img_path.split("/")[-1]
+                # 获取 ComfyUI 真实的 temp 目录路径
+                temp_dir = folder_paths.get_temp_directory()
+                temp_path = os.path.join(temp_dir, filename)
+                
+                # 如果文件存在，就使用这个绝对路径
+                if os.path.exists(temp_path):
+                    img_path = temp_path
 
-        img_out = []
+        # 3. 初始化输出
+        output_images = []
+        output_masks = []
+        w, h = None, None
+
+        # 4. 图像处理内部函数
+        def process_pil_image(img):
+            nonlocal w, h
+            if img.format == 'MPO': return 
+
+            for i in ImageSequence.Iterator(img):
+                i = ImageOps.exif_transpose(i)
+                if i.mode == 'I':
+                    i = i.point(lambda i: i * (1 / 255))
+                image = i.convert("RGB")
+
+                if len(output_images) == 0:
+                    w = image.size[0]
+                    h = image.size[1]
+                
+                if image.size[0] != w or image.size[1] != h:
+                    continue
+
+                image = np.array(image).astype(np.float32) / 255.0
+                image = torch.from_numpy(image)[None,]
+
+                # Mask 处理
+                if 'A' in i.getbands():
+                    mask = np.array(i.getchannel('A')).astype(np.float32) / 255.0
+                    mask = 1. - torch.from_numpy(mask)
+                elif i.mode == 'P' and 'transparency' in i.info:
+                    try:
+                        mask = np.array(i.convert('RGBA').getchannel('A')).astype(np.float32) / 255.0
+                        mask = 1. - torch.from_numpy(mask)
+                    except:
+                        mask = torch.zeros((64, 64), dtype=torch.float32, device="cpu")
+                else:
+                    mask = torch.zeros((64, 64), dtype=torch.float32, device="cpu")
+
+                output_images.append(image)
+                output_masks.append(mask.unsqueeze(0))
+
+        # 5. 执行加载
         if img_path and os.path.exists(img_path):
             if os.path.isdir(img_path):
-                for filename in os.listdir(img_path):
-                    if filename.lower().endswith((".png", ".jpg", ".jpeg", ".tiff", ".bmp", ".gif")):
+                for filename in sorted(os.listdir(img_path)):
+                    if filename.lower().endswith((".png", ".jpg", ".jpeg", ".tiff", ".bmp", ".gif", ".webp")):
                         try:
-                            img = Image.open(os.path.join(img_path, filename))
-                            img = ImageOps.exif_transpose(img)
-                            if img.mode == "I": img = img.point(lambda i: i * (1 / 256)).convert("L")
-                            image = img.convert("RGB")
-                            image = np.array(image).astype(np.float32) / 255.0
-                            image = torch.from_numpy(image).unsqueeze(0)
-                            img_out.append(image)
+                            full_path = os.path.join(img_path, filename)
+                            img = Image.open(full_path)
+                            process_pil_image(img)
                         except: pass
             else:
                 try:
                     img = Image.open(img_path)
-                    for i in ImageSequence.Iterator(img):
-                        i = ImageOps.exif_transpose(i)
-                        if i.mode == "I": i = i.point(lambda i: i * (1 / 256)).convert("L")
-                        image = i.convert("RGB")
-                        image = np.array(image).astype(np.float32) / 255.0
-                        image = torch.from_numpy(image).unsqueeze(0)
-                        img_out.append(image)
+                    process_pil_image(img)
                 except Exception as e:
-                    print(f"Failed to load image: {img_path}, {e}")
+                    print(f"Failed to load: {img_path}, {e}")
 
-        if len(img_out) > 1: return (torch.cat(img_out, dim=0),)
-        elif img_out: return (img_out[0],)
-        return (torch.zeros((1, 64, 64, 3), dtype=torch.float32),)
+        # 6. 返回结果
+        if not output_images:
+            return (torch.zeros((1, 64, 64, 3), dtype=torch.float32), torch.zeros((1, 64, 64), dtype=torch.float32))
+
+        if len(output_images) > 1:
+            return (torch.cat(output_images, dim=0), torch.cat(output_masks, dim=0))
+        else:
+            return (output_images[0], output_masks[0])
 
 # ============================================================================
 # 节点映射注册

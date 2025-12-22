@@ -121,8 +121,8 @@ class SaveImageWithSound(SaveImage):
         types = super().INPUT_TYPES()
         
         if "filename_prefix" in types["required"]:
-            types["required"]["filename_prefix"][1]["default"] = "Comfy_{date}",
-            types["required"]["filename_prefix"][1]["tooltip"] = "支持 {date}, {time}, {datetime} 占位符",
+            types["required"]["filename_prefix"][1]["default"] = "Comfy_{date}"
+            types["required"]["filename_prefix"][1]["tooltip"] = "支持 {date}, {time}, {datetime} 占位符"
         
         types["optional"] = {
             "sound_file": ("STRING", {"default": "sound.mp3"}),
