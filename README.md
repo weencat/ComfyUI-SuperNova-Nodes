@@ -24,3 +24,8 @@ Video reading and saving node, reference node: comfyui-videohelpersuite https://
 Lora reading node and sound playback node, reference node: bjornulf_custom_nodes https://github.com/justUmen/Bjornulf_custom_nodes
 
 Thanks to the excellent developers who created these nodes.
+
+install:
+"Comfyui localfile"/custom_nodes
+to cmd
+git clone https://github.com/weencat/ComfyUI-SuperNova-Nodes.git
