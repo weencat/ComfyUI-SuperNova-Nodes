@@ -1,6 +1,6 @@
 {
     "SaveImageToInput": {
-        "display_name": "保存图群(输出)",
+        "display_name": "保存图群(输出)🖼️",
         "inputs": {
             "images": {
                 "name": "图像"
@@ -14,7 +14,7 @@
         }
     },
     "LoadImageFromReload": {
-        "display_name": "读取图群(reload文件夹)",
+        "display_name": "读取图群(reload文件夹)🗃️",
         "inputs": {
             "image": {
                 "name": "图像"
@@ -22,7 +22,7 @@
         }
     },
     "LoadImageWithSubfolders": {
-        "display_name": "读取图群(子文件夹)",
+        "display_name": "读取图群(子文件夹)📂",
         "inputs": {
             "image": {
                 "name": "图像"
@@ -30,7 +30,7 @@
         }
     },
     "LoadImageUnified": {
-        "display_name": "读取图群(全图片)",
+        "display_name": "读取图群(全图片)🗄️",
         "inputs": {
             "image": {
                 "name": "图像"
@@ -44,299 +44,18 @@
         }
     },
     "AnyMultiSwitchScalable": {
-        "display_name": "多路式交换机",
+        "display_name": "多路式交换机🎚️",
         "inputs": {
             "input1": {
                 "name": "输入1"
             }
         }
     },
-    "ImageStorageNode": {
-        "display_name": "🔵BB同尺寸图像容器(批次)",
-        "inputs": {
-            "image": {
-                "name": "图像"
-            },
-            "clear": {
-                "name": "清除"
-            },
-            "replace_last": {
-                "name": "替换最后一个"
-            }
-        },
-        "outputs": {
-            "0": {
-                "name": "最后一张图像"
-            },
-            "1": {
-                "name": "总数"
-            },
-            "2": {
-                "name": "所有图像"
-            }
-        }
-    },
-    "XY Plot KSampler": {
-        "display_name": "XY图(K采样器)",
-        "inputs": {
-            "model": {
-                "name": "模型"
-            },
-            "clip": {
-                "name": "CLIP"
-            },
-            "vae": {
-                "name": "VAE"
-            },
-            "positive_text": {
-                "name": "正面提示词"
-            },
-            "negative_text": {
-                "name": "负面提示词"
-            },
-            "latent_image": {
-                "name": "Latent"
-            },
-            "seed": {
-                "name": "随机种"
-            },
-            "steps": {
-                "name": "步数"
-            },
-            "cfg": {
-                "name": "提示词相关性"
-            },
-            "sampler_name": {
-                "name": "采样器名称"
-            },
-            "scheduler": {
-                "name": "调度器"
-            },
-            "denoise": {
-                "name": "降噪"
-            },
-            "XY_PLOT_SETTINGS": {
-                "name": "XY图设置"
-            }
-        },
-        "outputs": {
-            "0": {
-                "name": "XY列图"
-            },
-            "1": {
-                "name": "单张图像"
-            }
-        }
-    },
-    "XY Plot Settings": {
-        "display_name": "XY图格设置",
-        "inputs": {
-            "grid_spacing": {
-                "name": "网格间距"
-            },
-            "xy_flip": {
-                "name": "XY翻转"
-            },
-            "y_label_orientation": {
-                "name": "Y轴标签方向"
-            }
-        },
-        "outputs": {
-            "0": {
-                "name": "XY图设置"
-            }
-        }
-    },
-    "XY Input: Seeds": {
-        "display_name": "XY输入(种子)",
-        "inputs": {
-            "batch_count": {
-                "name": "批次数"
-            }
-        }
-    },
-    "XY Input: Steps": {
-        "display_name": "XY输入(步数)",
-        "inputs": {
-            "batch_count": {
-                "name": "批次数"
-            },
-            "first_step": {
-                "name": "起始步数"
-            },
-            "last_step": {
-                "name": "结束步数"
-            }
-        }
-    },
-    "XY Input: CFG": {
-        "display_name": "XY输入(CFG)",
-        "inputs": {
-            "batch_count": {
-                "name": "批次数"
-            },
-            "first_cfg": {
-                "name": "起始CFG"
-            },
-            "last_cfg": {
-                "name": "结束CFG"
-            }
-        }
-    },
-    "XY Input: Sampler/Scheduler": {
-        "display_name": "XY输入(采样器/调度器)",
-        "inputs": {
-            "target_parameter": {
-                "name": "目标参数"
-            },
-            "input_count": {
-                "name": "输入数量"
-            },
-            "scheduler_1": {
-                "name": "调度器1"
-            },
-            "Sampler_1": {
-                "name": "采样器1"
-            }
-        }
-    },
-    "XY Input: Denoise": {
-        "display_name": "XY输入(降噪)",
-        "inputs": {
-            "batch_count": {
-                "name": "批次数"
-            },
-            "first_denoise": {
-                "name": "起始降噪"
-            },
-            "last_denoise": {
-                "name": "结束降噪"
-            }
-        }
-    },
-    "XY Input: LoRA Batch": {
-        "display_name": "XY输入：LoRA批处理(路径)",
-        "inputs": {
-            "batch_path": {
-                "name": "批处理路径"
-            },
-            "subdirectories": {
-                "name": "子目录"
-            },
-            "batch_sort": {
-                "name": "批处理排序"
-            },
-            "batch_max": {
-                "name": "批处理最大值"
-            },
-            "model_strength": {
-                "name": "模型强度"
-            },
-            "clip_strength": {
-                "name": "剪辑强度"
-            }
-        }
-    },
-    "XY Input: LoRA Plot": {
-        "display_name": "XY输入：LoRA图",
-        "inputs": {
-            "input_mode": {
-                "name": "输入模式"
-            },
-            "model_strength": {
-                "name": "模型强度"
-            },
-            "clip_strength": {
-                "name": "clip强度"
-            },
-            "lora_name": {
-                "name": "lora模型"
-            },
-            "X_batch_path": {
-                "name": "X路径"
-            },
-            "X_batch_count": {
-                "name": "X轴批次数"
-            },
-            "X_subdirectories": {
-                "name": "X轴子目录"
-            },
-            "X_batch_sort": {
-                "name": "X轴批处理排序"
-            },
-            "X_first_value": {
-                "name": "X轴起始值"
-            },
-            "X_last_value": {
-                "name": "X轴结束值"
-            },
-            "Y_batch_count": {
-                "name": "Y轴批次数"
-            },
-            "Y_first_value": {
-                "name": "Y轴起始值"
-            },
-            "Y_last_value": {
-                "name": "Y轴结束值"
-            }
-        }
-    },
-    "AxisWithRingNode": {
-        "display_name": "带环轴节点"
-    },
-    "ImageFileReader": {
-        "display_name": "蓝波球的图片文件读取器",
-        "inputs": {
-            "folder1_path": {
-                "name": "文件夹1路径"
-            },
-            "folder2_path": {
-                "name": "文件夹2路径"
-            },
-            "file_name": {
-                "name": "文件名"
-            },
-            "file_extension": {
-                "name": "文件扩展名"
-            }
-        }
-    },
-    "TXTAndImageReader": {
-        "display_name": "蓝波球的TXT与图片读取器",
-        "inputs": {
-            "txt_folder_path": {
-                "name": "txt文件夹路径"
-            },
-            "image_folder_path": {
-                "name": "图片文件夹路径"
-            },
-            "file_name": {
-                "name": "文件名"
-            },
-            "image_extension": {
-                "name": "图片扩展名"
-            }
-        }
-    },
-    "TXTFileReader": {
-        "display_name": "蓝波球的TXT文件读取器",
-        "inputs": {
-            "folder1_path": {
-                "name": "文件夹1路径"
-            },
-            "folder2_path": {
-                "name": "文件夹2路径"
-            },
-            "file_name": {
-                "name": "文件名"
-            }
-        }
-    },
     "LoadImagewithSubfolders": {
-        "display_name": "加载图片上传"
+        "display_name": "加载图片上传📂"
     },
     "LoraLoaderWithPathStack": {
-        "display_name": "从路径加载 LoRA",
+        "display_name": "从路径加载 LoRA🔗",
         "inputs": {
             "lora_path": {
                 "name": "LoRA路径"
@@ -361,7 +80,7 @@
         }
     },
     "SaveImageWithSound": {
-        "display_name": "保存图像(提示音)🔊",
+        "display_name": "保存图像(提示音)🔊🖼️",
         "inputs": {
             "images": {
                 "name": "图像"
@@ -571,7 +290,7 @@
         }
     },
     "XY_Input_Sampler_List_Builder": {
-        "display_name": "XY输入：添加采样器",
+        "display_name": "XY输入：添加采样器 串联🔗⚙️",
         "inputs": {
             "sampler_name": {
                 "name": "采样器名称"
@@ -590,7 +309,7 @@
         }
     },
     "XY_Input_Scheduler_List_Builder": {
-        "display_name": "XY输入：添加调度器",
+        "display_name": "XY输入：添加调度器 串联🔗⚙️",
         "inputs": {
             "scheduler_name": {
                 "name": "调度器名称"
@@ -609,7 +328,7 @@
         }
     },
     "XY_Input_Sampler_Scheduler_Builder": {
-        "display_name": "XY输入：添加采样器/调度器",
+        "display_name": "XY输入：添加采样器/调度器 串联🔗⚙️",
         "inputs": {
             "mode": {
                 "name": "模式"
@@ -633,8 +352,312 @@
             }
         }
     },
+    "XY_Plot_KSampler": {
+        "display_name": "XY图(K采样器)",
+        "inputs": {
+            "model": {
+                "name": "模型"
+            },
+            "clip": {
+                "name": "CLIP"
+            },
+            "vae": {
+                "name": "VAE"
+            },
+            "positive_text": {
+                "name": "正面提示词"
+            },
+            "negative_text": {
+                "name": "负面提示词"
+            },
+            "latent_image": {
+                "name": "Latent"
+            },
+            "seed": {
+                "name": "随机种"
+            },
+            "steps": {
+                "name": "步数"
+            },
+            "cfg": {
+                "name": "CFG"
+            },
+            "sampler_name": {
+                "name": "采样器名称"
+            },
+            "scheduler": {
+                "name": "调度器"
+            },
+            "denoise": {
+                "name": "降噪"
+            },
+            "XY_PLOT_SETTINGS": {
+                "name": "XY图设置"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "XY列图"
+            },
+            "1": {
+                "name": "单张图像"
+            }
+        }
+    },
+    "XY_Plot_Settings": {
+        "display_name": "XY图格设置 📐",
+        "inputs": {
+            "grid_spacing": {
+                "name": "网格间距"
+            },
+            "xy_flip": {
+                "name": "XY翻转"
+            },
+            "y_label_orientation": {
+                "name": "Y轴标签方向"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "XY图设置"
+            }
+        }
+    },
+    "XY_Input_Seeds": {
+        "display_name": "XY输入：随机种 串联🔗⚙️",
+        "inputs": {
+            "batch_count": {
+                "name": "批次数"
+            }
+        }
+    },
+    "XY_Input_Steps": {
+        "display_name": "XY输入： 步数 ⚙️",
+        "inputs": {
+            "batch_count": {
+                "name": "批次数"
+            },
+            "first_step": {
+                "name": "起始步数"
+            },
+            "last_step": {
+                "name": "结束步数"
+            }
+        }
+    },
+    "XY_Input_CFG": {
+        "display_name": "XY输入：CFG ⚙️",
+        "inputs": {
+            "batch_count": {
+                "name": "批次数"
+            },
+            "first_cfg": {
+                "name": "起始CFG"
+            },
+            "last_cfg": {
+                "name": "结束CFG"
+            }
+        }
+    },
+    "XY_Input_Sampler_Scheduler_Batch": {
+        "display_name": "XY输入：采样器/调度器 批次🗒️⚙️",
+        "inputs": {
+            "target_parameter": {
+                "name": "目标参数"
+            },
+            "input_count": {
+                "name": "输入数量"
+            },
+            "scheduler_1": {
+                "name": "调度器1"
+            },
+            "Sampler_1": {
+                "name": "采样器1"
+            }
+        }
+    },
+    "XY_Input_Denoise": {
+        "display_name": "XY输入：降噪值 ⚙️",
+        "inputs": {
+            "batch_count": {
+                "name": "批次数"
+            },
+            "first_denoise": {
+                "name": "起始降噪"
+            },
+            "last_denoise": {
+                "name": "结束降噪"
+            }
+        }
+    },
+    "XY_Input_LoRA_Batch": {
+        "display_name": "XY输入：LoRA批处理(路径) ⚙️",
+        "inputs": {
+            "batch_path": {
+                "name": "批处理路径"
+            },
+            "subdirectories": {
+                "name": "子目录"
+            },
+            "batch_sort": {
+                "name": "批处理排序"
+            },
+            "batch_max": {
+                "name": "批处理最大值"
+            },
+            "model_strength": {
+                "name": "模型强度"
+            },
+            "clip_strength": {
+                "name": "剪辑强度"
+            }
+        }
+    },
+    "XY_Input_LoRA_Plot": {
+        "display_name": "XY输入：LoRA图 ⚙️",
+        "inputs": {
+            "input_mode": {
+                "name": "输入模式"
+            },
+            "model_strength": {
+                "name": "模型强度"
+            },
+            "clip_strength": {
+                "name": "clip强度"
+            },
+            "lora_name": {
+                "name": "lora模型"
+            },
+            "X_batch_path": {
+                "name": "X路径"
+            },
+            "X_batch_count": {
+                "name": "X轴批次数"
+            },
+            "X_subdirectories": {
+                "name": "X轴子目录"
+            },
+            "X_batch_sort": {
+                "name": "X轴批处理排序"
+            },
+            "X_first_value": {
+                "name": "X轴起始值"
+            },
+            "X_last_value": {
+                "name": "X轴结束值"
+            },
+            "Y_batch_count": {
+                "name": "Y轴批次数"
+            },
+            "Y_first_value": {
+                "name": "Y轴起始值"
+            },
+            "Y_last_value": {
+                "name": "Y轴结束值"
+            }
+        }
+    },
+    "XY_Input_PromptSR_Chain": {
+        "display_name": "XY输入: 提示词搜索/替换 串联🔗⚙️",
+        "inputs": {
+            "prompt_s_r_list": {
+                "name": "提示词S/R列表"
+            },
+            "search_txt": {
+                "name": "搜索文本"
+            },
+            "replace_txt": {
+                "name": "替换文本"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "提示词S/R列表"
+            }
+        }
+    },
+    "XY_Input_Checkpoint_Chain": {
+        "display_name": "XY输入: Checkpoint模型 串联🔗⚙️",
+        "inputs": {
+            "ckpt_list": {
+                "name": "模型列表"
+            },
+            "ckpt_name": {
+                "name": "模型名称"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "模型列表"
+            }
+        }
+    },
+    "XY_Input_VAE_Chain": {
+        "display_name": "XY输入: VAE 串联🔗⚙️",
+        "inputs": {
+            "vae_s_list": {
+                "name": "VAE列表"
+            },
+            "vae_name": {
+                "name": "VAE名称"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "VAE列表"
+            }
+        }
+    },
+    "XY_Input_Denoise_Chain": {
+        "display_name": "XY输入: 降噪值 串联🔗⚙️",
+        "inputs": {
+            "denoise_s_list": {
+                "name": "降噪列表"
+            },
+            "denoise_value": {
+                "name": "降噪值"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "降噪列表"
+            }
+        }
+    },
+    "XY_Input_Seeds_Batch": {
+        "display_name": "XY输入: 随机种 批次🗒️⚙️",
+        "inputs": {
+            "input_count": {
+                "name": "输入数量"
+            }
+        }
+    },
+    "XY_Input_Checkpoint_Batch": {
+        "display_name": "XY输入: Checkpoint模型 批次🗒️⚙️",
+        "inputs": {
+            "input_count": {
+                "name": "输入数量"
+            }
+        }
+    },
+    "XY_Input_VAE_Batch": {
+        "display_name": "XY输入: VAE 批次🗒️⚙️",
+        "inputs": {
+            "input_count": {
+                "name": "输入数量"
+            }
+        }
+    },
+    "XY_Input_PromptSR_Batch": {
+        "display_name": "XY输入: 提示词搜索/替换 批次🗒️⚙️",
+        "inputs": {
+            "input_count": {
+                "name": "输入数量"
+            }
+        }
+    },
     "IntAndFloatHub_Node": {
-        "display_name": "整数与浮点数控制器",
+        "display_name": "整数与浮点数控制器🔢",
         "inputs": {
             "INT": {
                 "name": "整数"
@@ -653,7 +676,7 @@
         }
     },
     "KSamplerSettings_Standard": {
-        "display_name": "KSampler设置",
+        "display_name": "KSampler设置⚙️",
         "inputs": {
             "seed": {
                 "name": "随机种"
@@ -696,7 +719,7 @@
         }
     },
     "load_image_by_path": {
-        "display_name": "加载图像(路径)",
+        "display_name": "加载图像(路径)🔗📁",
         "inputs": {
             "img_path": {
                 "name": "图像路径"
@@ -704,7 +727,7 @@
         }
     },
     "SamplerSchedulerHubv2": {
-        "display_name": "采样器与调度器名",
+        "display_name": "采样器与调度器名⚙️",
         "inputs": {
             "sampler_name": {
                 "name": "采样器"
@@ -723,7 +746,7 @@
         }
     },
     "SimpleLoadVideoPath": {
-        "display_name": "简易视频加载器(路径)",
+        "display_name": "简易视频加载器(路径)🔗📼",
         "inputs": {
             "video_path": {
                 "name": "视频路径"
@@ -754,7 +777,7 @@
         }
     },
     "SimpleVideoCombine": {
-        "display_name": "简易视频保存器 🔊",
+        "display_name": "简易视频保存器 🔊🎞️",
         "inputs": {
             "frame_rate": {
                 "name": "帧率"
@@ -773,6 +796,118 @@
             },
             "volume": {
                 "name": "提示音量"
+            }
+        }
+    },
+    "PauseAndSelectOutput": {
+        "display_name": "简易输出分配器 ➡️",
+        "inputs": {
+            "input_any": {
+                "name": "输入点"
+            },
+            "seed": {
+                "name": "随机种"
+            }
+        }
+    },
+    "PauseAndSelectInput": {
+        "display_name": "简单输入选择器 ⬅️",
+        "inputs": {
+            "seed": {
+                "name": "随机种"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "输出点"
+            }
+        }
+    },
+    "PauseAndMatrix": {
+        "display_name": "矩阵对切换器 🔀",
+        "inputs": {
+            "seed": {
+                "name": "随机种"
+            }
+        }
+    },
+    "MultiInputSelector": {
+        "display_name": "多个输入选择器 🔢",
+        "inputs": {
+            "seed": {
+                "name": "随机种"
+            },
+            "input_count": {
+                "name": "输入点设置"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "输出点"
+            }
+        }
+    },
+    "MultiOutputSplitter": {
+        "display_name": "多个输出分配器 🔢",
+        "inputs": {
+            "input_any": {
+                "name": "输入点"
+            },
+            "seed": {
+                "name": "随机种"
+            },
+            "output_count": {
+                "name": "输出点设置"
+            }
+        }
+    },
+    "PreviewAndPause": {
+        "display_name": "图片预览控制 ⏯️"
+    },
+    "MultiImageComparer": {
+        "display_name": "多图对比 🪟",
+        "inputs": {
+            "image_1": {
+                "name": "图片1"
+            },
+            "image_2": {
+                "name": "图片2"
+            },
+            "image_3": {
+                "name": "图片3"
+            },
+            "image_4": {
+                "name": "图片4"
+            }
+        }
+    },
+    "ImageAddText": {
+        "display_name": "添加文本到图片 ✍️",
+        "inputs": {
+            "image": {
+                "name": "图片"
+            },
+            "text": {
+                "name": "文本"
+            },
+            "direction": {
+                "name": "文本方向"
+            },
+            "font_path": {
+                "name": "字体路径",
+                "tooltip": "假如为为空,默认使用Fonts内的local.ttf"
+            },
+            "font_size": {
+                "name": "字体大小"
+            },
+            "text_color": {
+                "name": "文本颜色"
+            },
+            "bg_color": {
+                "name": "背景颜色"
+            },
+            "bg_mode": {
+                "name": "背景模式"
             }
         }
     },

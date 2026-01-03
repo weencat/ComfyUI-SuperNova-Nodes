@@ -31,6 +31,7 @@ if not os.path.exists(font_path):
 
 XYPLOT_LIM = 50
 XYPLOT_DEF = 3
+
 LORA_EXTENSIONS = ['.safetensors', '.ckpt']
 try:
     xy_batch_default_path = os.path.abspath(os.sep)
@@ -76,8 +77,9 @@ def get_batch_files(directory_path, valid_extensions, include_subdirs=False):
     return batch_files
 
 # ======================================================================================================================
-# 核心 XY Plot 节点 (V9)
+# 核心 XY Plot 节点 
 # ======================================================================================================================
+
 class StandaloneXYPlot:
     @classmethod
     def INPUT_TYPES(cls):
@@ -101,13 +103,16 @@ class StandaloneXYPlot:
     RETURN_TYPES, RETURN_NAMES, FUNCTION, CATEGORY = ("IMAGE", "IMAGE"), ("XY Plot Image", "Batched Images"), "plot", "🪐supernova/XY Plot"
 
     def plot(self, model, clip, vae, positive_text, negative_text, latent_image, seed, steps, cfg, sampler_name, scheduler, denoise, X=None, Y=None, XY_PLOT_SETTINGS=None):
-        # --- 新增：从设置节点或默认值中获取参数 ---
+        # 1. 获取设置
         if XY_PLOT_SETTINGS:
             grid_spacing = XY_PLOT_SETTINGS.get("grid_spacing", 10)
             xy_flip = XY_PLOT_SETTINGS.get("xy_flip", "False")
             y_label_orientation = XY_PLOT_SETTINGS.get("y_label_orientation", "Horizontal")
+            settings_font_size = XY_PLOT_SETTINGS.get("font_size", 0)
+            settings_font_path = XY_PLOT_SETTINGS.get("font_path", "")
         else:
             grid_spacing, xy_flip, y_label_orientation = 10, "False", "Horizontal"
+            settings_font_size, settings_font_path = 0, ""
         
         X_type, X_value = X if X else ("Nothing", [""])
         Y_type, Y_value = Y if Y else ("Nothing", [""])
@@ -122,87 +127,152 @@ class StandaloneXYPlot:
 
         image_pil_list, image_tensor_list = [], []
         
-        # ... (内部的图像生成循环代码保持不变) ...
+        # 2. 生成循环 (这部分逻辑保持不变)
         for y_idx, y_val in enumerate(Y_value):
             for x_idx, x_val in enumerate(X_value):
-                # ... 省略与 V8 版本相同的内部逻辑 ...
                 current_seed, current_steps, current_cfg = seed, steps, cfg
                 current_sampler, current_scheduler, current_denoise = sampler_name, scheduler, denoise
                 current_model, current_clip = model.clone(), clip.clone()
+                current_vae = vae
+                pos_prompt, neg_prompt = positive_text, negative_text
+                
                 lora_stack = []
                 lora_types = ["LoRA Batch", "LoRA Wt", "LoRA MStr", "LoRA CStr"]
-                is_mstr_cstr_plot = (X_type == "LoRA MStr" and Y_type == "LoRA CStr") or (X_type == "LoRA CStr" and Y_type == "LoRA MStr")
                 
+                temp_params = [(X_type, x_val), (Y_type, y_val)]
+                
+                is_mstr_cstr_plot = (X_type == "LoRA MStr" and Y_type == "LoRA CStr") or (X_type == "LoRA CStr" and Y_type == "LoRA MStr")
                 if is_mstr_cstr_plot:
-                    lora_path = x_val[0][0] 
-                    m_str = x_val[0][1] if X_type == "LoRA MStr" else y_val[0][1]
-                    c_str = y_val[0][2] if Y_type == "LoRA CStr" else x_val[0][2]
+                    try:
+                        lora_path = x_val[0][0] 
+                        m_str = x_val[0][1] if X_type == "LoRA MStr" else y_val[0][1]
+                        c_str = y_val[0][2] if Y_type == "LoRA CStr" else x_val[0][2]
+                        lora_stack = [(lora_path, m_str, c_str)]
+                    except: pass 
+                elif X_type == "LoRA Batch" and Y_type in lora_types:
+                    lora_path = x_val[0][0]
+                    m_str = y_val if Y_type == "LoRA MStr" else (y_val if Y_type == "LoRA Wt" else x_val[0][1])
+                    c_str = y_val if Y_type == "LoRA CStr" else (y_val if Y_type == "LoRA Wt" else x_val[0][2])
+                    lora_stack = [(lora_path, m_str, c_str)]
+                elif Y_type == "LoRA Batch" and X_type in lora_types:
+                    lora_path = y_val[0][0]
+                    m_str = x_val if X_type == "LoRA MStr" else (x_val if X_type == "LoRA Wt" else y_val[0][1])
+                    c_str = x_val if X_type == "LoRA CStr" else (x_val if X_type == "LoRA Wt" else y_val[0][2])
                     lora_stack = [(lora_path, m_str, c_str)]
                 else:
-                    if X_type == "LoRA Batch" and Y_type in lora_types:
-                        lora_path = x_val[0][0]
-                        m_str = y_val if Y_type == "LoRA MStr" else (y_val if Y_type == "LoRA Wt" else x_val[0][1])
-                        c_str = y_val if Y_type == "LoRA CStr" else (y_val if Y_type == "LoRA Wt" else x_val[0][2])
-                        lora_stack = [(lora_path, m_str, c_str)]
-                    elif Y_type == "LoRA Batch" and X_type in lora_types:
-                        lora_path = y_val[0][0]
-                        m_str = x_val if X_type == "LoRA MStr" else (x_val if X_type == "LoRA Wt" else y_val[0][1])
-                        c_str = x_val if X_type == "LoRA CStr" else (x_val if X_type == "LoRA Wt" else y_val[0][2])
-                        lora_stack = [(lora_path, m_str, c_str)]
-                    else:
-                        temp_params = [(X_type, x_val), (Y_type, y_val)]
-                        for param_type, param_val in temp_params:
-                            if not param_val: continue
-                            if param_type == "Seeds++ Batch": current_seed += param_val
-                            elif param_type == "Steps": current_steps = param_val
-                            elif param_type == "CFG Scale": current_cfg = param_val
-                            elif param_type == "Denoise": current_denoise = param_val
-                            elif param_type == "Sampler":
-                                current_sampler, scheduler_override = param_val
-                                if scheduler_override: current_scheduler = scheduler_override
-                            elif param_type == "Scheduler":
-                                current_scheduler = param_val[0] if isinstance(param_val, tuple) else param_val
-                            elif param_type in lora_types:
-                                lora_stack.extend(param_val)
+                    for param_type, param_val in temp_params:
+                        if not param_val and param_val != 0: continue
+                        if param_type == "Seeds++ Batch": current_seed += param_val
+                        elif param_type == "Steps": current_steps = param_val
+                        elif param_type == "CFG Scale": current_cfg = param_val
+                        elif param_type == "Denoise": current_denoise = param_val
+                        elif param_type == "Sampler":
+                            current_sampler, scheduler_override = param_val
+                            if scheduler_override: current_scheduler = scheduler_override
+                        elif param_type == "Scheduler":
+                            current_scheduler = param_val[0] if isinstance(param_val, tuple) else param_val
+                        elif param_type in lora_types:
+                            lora_stack.extend(param_val)
+                        elif param_type == "PromptSR":
+                            search_txt, replace_txt = param_val
+                            pos_prompt = pos_prompt.replace(search_txt, replace_txt)
+                            neg_prompt = neg_prompt.replace(search_txt, replace_txt)
+                        elif param_type == "Checkpoint":
+                            ckpt_name = param_val
+                            ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
+                            try:
+                                out = comfy.sd.load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, embedding_directory=folder_paths.get_folder_paths("embeddings"))
+                                current_model, current_clip, current_vae = out[:3]
+                            except Exception as e: print(f"加载 Checkpoint '{ckpt_name}' 失败: {e}")
+                        elif param_type == "VAE":
+                            vae_name = param_val
+                            vae_path = folder_paths.get_full_path("vae", vae_name)
+                            try:
+                                current_vae = comfy.sd.VAE(sd=comfy.utils.load_torch_file(vae_path))
+                            except Exception as e: print(f"加载 VAE '{vae_name}' 失败: {e}")
                 
                 if lora_stack:
-                    print(f"应用LoRA栈: {lora_stack}")
                     for lora_path, model_str, clip_str in lora_stack:
-                        if lora_path is None or lora_path.lower() == 'none' or not lora_path.strip(): continue
+                        if lora_path is None or str(lora_path).lower() == 'none' or not str(lora_path).strip(): continue
                         if os.path.exists(lora_path) and os.path.isfile(lora_path):
                             try:
                                 lora_data = comfy.utils.load_torch_file(lora_path)
                                 lora_model, lora_clip = comfy.sd.load_lora_for_models(current_model, current_clip, lora_data, model_str, clip_str)
                                 current_model, current_clip = lora_model, lora_clip
-                            except Exception as e:
-                                print(f"加载 LoRA '{os.path.basename(lora_path)}' 失败: {e}")
-                        else:
-                            print(f"找不到 LoRA 文件，路径无效: {lora_path}")
-
-                positive_cond, negative_cond = CLIPTextEncode().encode(current_clip, positive_text)[0], CLIPTextEncode().encode(current_clip, negative_text)[0]
-                print(f"正在生成: X={x_idx}, Y={y_idx} | seed={current_seed}")
-                latent_out = KSampler().sample(current_model, current_seed, current_steps, current_cfg, current_sampler, current_scheduler, positive_cond, negative_cond, latent_image, denoise=current_denoise)[0]
-                image = VAEDecode().decode(vae, latent_out)[0]
-                image_tensor_list.append(image)
-                image_pil_list.append(tensor2pil(image))
+                            except Exception as e: print(f"加载 LoRA '{os.path.basename(lora_path)}' 失败: {e}")
+                
+                positive_cond, negative_cond = CLIPTextEncode().encode(current_clip, pos_prompt)[0], CLIPTextEncode().encode(current_clip, neg_prompt)[0]
+                print(f"正在生成: X={x_idx}, Y={y_idx} | Seed={current_seed}")
+                
+                try:
+                    latent_out = KSampler().sample(current_model, current_seed, current_steps, current_cfg, current_sampler, current_scheduler, positive_cond, negative_cond, latent_image, denoise=current_denoise)[0]
+                    image = VAEDecode().decode(current_vae, latent_out)[0]
+                    image_tensor_list.append(image)
+                    image_pil_list.append(tensor2pil(image))
+                except Exception as e:
+                    print(f"生成失败 X={x_idx}, Y={y_idx}: {e}")
+                    image_pil_list.append(Image.new('RGB', (512, 512), (0, 0, 0)))
+                    image_tensor_list.append(torch.zeros((1, 512, 512, 3)))
                 
         if not image_pil_list: return (None, None)
 
-        # ... (绘图逻辑与 V8 版本相同) ...
+        # 3. 绘图逻辑 (含自定义字体处理)
         num_cols, num_rows = len(X_value), len(Y_value)
         i_width, i_height = image_pil_list[0].size
         
         def format_label(val, type):
-            if type == "LoRA Batch":
-                if isinstance(val, list) and val:
-                    lora_path, _, _ = val[0]
-                    if lora_path is None or lora_path.lower() == 'none': return "None"
-                    name_part = os.path.splitext(os.path.basename(lora_path))[0]
-                    return name_part[:22] + "..." if len(name_part) > 25 else name_part
-            if type == "LoRA Wt": return f"Wt: {val:.2f}"
-            if type == "LoRA MStr": return f"MStr: {val:.2f}"
-            if type == "LoRA CStr": return f"CStr: {val:.2f}"
-            return str(val[0]) if isinstance(val, (list, tuple)) else str(val)
+            try:
+                # --- 1. 预处理：获取基础数值字符串 ---
+                # 如果是列表/元组（如 Checkpoint 列表, Sampler 元组等），取第一个元素
+                if isinstance(val, (list, tuple)):
+                    if len(val) > 0:
+                        # 针对 LoRA Batch 的特殊嵌套结构 [[path, m, c]]
+                        if type == "LoRA Batch":
+                            try:
+                                lora_path = val[0][0]
+                                if not lora_path or str(lora_path) == "None": return "None"
+                                name = os.path.splitext(os.path.basename(lora_path))[0]
+                                return name[:20] + "..." if len(name) > 23 else name
+                            except: return "LoRA"
+                        
+                        # 针对 Prompt S/R，我们需要第二个元素（替换后的文本）
+                        if type in ["Prompt S/R", "PromptSR"] and len(val) > 1:
+                            return f"Prompt: {val[1]}"
+                            
+                        value_str = str(val[0])
+                    else:
+                        value_str = "" # 防止空列表报错
+                else:
+                    value_str = str(val)
+
+                # --- 2. 根据类型添加前缀 (解决你提到的"缺少前缀"问题) ---
+                if type == "Steps": return f"Steps: {value_str}"
+                if type == "CFG Scale": return f"CFG: {value_str}"
+                if type == "Denoise": return f"Denoise: {value_str}"
+                if type == "Seeds++ Batch": return f"Seed: {value_str}"
+                if type == "Sampler": return f"Sampler: {value_str}"
+                if type == "Scheduler": return f"Sched: {value_str}"
+                
+                # --- 3. 特殊类型的清理与格式化 ---
+                if type == "LoRA Wt": 
+                    try: return f"Wt: {float(value_str):.2f}"
+                    except: return f"Wt: {value_str}"
+
+                if type in ["Checkpoint", "VAE"]:
+                    # 清理文件名，去掉 .safetensors 后缀和路径
+                    name = os.path.splitext(os.path.basename(value_str))[0]
+                    return name[:20] + "..." if len(name) > 23 else name
+
+                if type in ["Prompt S/R", "PromptSR"]: # 兜底逻辑
+                     return f"Prompt: {value_str}"
+
+                # --- 4. 默认返回 ---
+                return value_str
+
+            except Exception as e:
+                # 终极防崩溃：无论发生什么错误，至少把值打印出来，不要红屏
+                print(f"Label Error: {e}")
+                return str(val)
 
         X_label, Y_label = [format_label(v, X_type) for v in X_value], [format_label(v, Y_type) for v in Y_value]
 
@@ -213,35 +283,61 @@ class StandaloneXYPlot:
         bg_height = (num_rows * i_height) + ((num_rows - 1) * grid_spacing) + y_offset_initial
         background = Image.new('RGB', (bg_width, bg_height), color=(255, 255, 255))
         
-        font_size = max(12, int(min(i_width, i_height) * 0.04))
-        try: font = ImageFont.truetype(font_path, font_size) if font_path else ImageFont.load_default()
-        except Exception as e: font = ImageFont.load_default()
+        # --- 字体处理逻辑 ---
+        # 1. 确定大小
+        if settings_font_size > 0:
+            final_font_size = settings_font_size
+        else:
+            final_font_size = max(12, int(min(i_width, i_height) * 0.04))
+            
+        # 2. 确定路径 (优先级: 设置节点 > 全局自动检测 > 系统默认)
+        chosen_font_path = font_path # 使用文件头部定义的全局变量作为备选
+        if settings_font_path and str(settings_font_path).strip():
+            chosen_font_path = settings_font_path
+            
+        try:
+            if chosen_font_path:
+                font = ImageFont.truetype(chosen_font_path, final_font_size)
+            else:
+                font = ImageFont.load_default()
+        except Exception as e:
+            print(f"XYPlot: 加载字体失败 '{chosen_font_path}', 尝试回退。错误: {e}")
+            try:
+                # 尝试回退到文件开头的全局检测字体
+                if font_path and chosen_font_path != font_path:
+                    font = ImageFont.truetype(font_path, final_font_size)
+                else:
+                    font = ImageFont.load_default()
+            except:
+                font = ImageFont.load_default()
+        # ------------------
 
         y_offset = y_offset_initial
         for row in range(num_rows):
             x_offset = x_offset_initial
             for col in range(num_cols):
-                background.paste(image_pil_list[row * num_cols + col], (x_offset, y_offset))
+                idx = row * num_cols + col
+                if idx < len(image_pil_list):
+                    background.paste(image_pil_list[idx], (x_offset, y_offset))
                 if row == 0 and X_type != "Nothing":
                     draw = ImageDraw.Draw(background)
                     draw.text((x_offset + i_width / 2, y_offset_initial / 2), X_label[col], font=font, fill="black", anchor="mm")
                 x_offset += i_width + grid_spacing
             
             if Y_type != "Nothing":
-                draw = ImageDraw.Draw(background)
                 if y_label_orientation == "Vertical":
-                    # 创建一个临时图像来旋转文字
-                    txt_img = Image.new('L', (i_height, font_size + 10))
+                    txt_img = Image.new('L', (i_height, final_font_size + 10)) # 使用计算后的大小
                     d = ImageDraw.Draw(txt_img)
-                    d.text((i_height/2, (font_size+10)/2), Y_label[row], font=font, fill=255, anchor="mm")
+                    d.text((i_height/2, (final_font_size+10)/2), Y_label[row], font=font, fill=255, anchor="mm")
                     w = txt_img.rotate(90, expand=1)
                     background.paste(ImageOps.colorize(w, (0,0,0), (0,0,0)), (int(x_offset_initial/2 - w.size[0]/2) , y_offset + int(i_height/2 - w.size[1]/2)),  w)
                 else:
+                    draw = ImageDraw.Draw(background)
                     draw.text((x_offset_initial / 2, y_offset + i_height / 2), Y_label[row], font=font, fill="black", anchor="mm")
             y_offset += i_height + grid_spacing
         
         return (pil2tensor(background), torch.cat(image_tensor_list, dim=0))
-
+    
 # ======================================================================================================================
 # XY Plot 设置节点
 # ======================================================================================================================
@@ -254,23 +350,29 @@ class XYPlotSettings:
                 "grid_spacing": ("INT", {"default": 10, "min": 0, "max": 500, "step": 1}),
                 "xy_flip": (["False", "True"],),
                 "y_label_orientation": (["Horizontal", "Vertical"],),
+                "font_size": ("INT", {"default": 50, "min": 0, "max": 500, "step": 1, "label": "font_size (0=Auto)"}),
+                "font_path": ("STRING", {"default": "", "multiline": False, "placeholder": "e.g. C:/Windows/Fonts/arial.ttf"}),
             }
         }
     RETURN_TYPES = ("XY_PLOT_SETTINGS",)
     FUNCTION = "get_settings"
     CATEGORY = "🪐supernova/XY Plot"
 
-    def get_settings(self, grid_spacing, xy_flip, y_label_orientation):
+    def get_settings(self, grid_spacing, xy_flip, y_label_orientation, font_size, font_path):
         settings_dict = {
             "grid_spacing": grid_spacing,
             "xy_flip": xy_flip,
             "y_label_orientation": y_label_orientation,
+            "font_size": font_size,
+            "font_path": font_path,
         }
         return (settings_dict,)
 
 # ======================================================================================================================
 # XY 输入节点
 # ======================================================================================================================
+
+# XY输入：LoRA图
 
 class TSC_XYplot_LoRA_Plot:
     modes = ["X: LoRA Batch, Y: LoRA Weight", "X: LoRA Batch, Y: Model Strength", "X: LoRA Batch, Y: Clip Strength", "X: Model Strength, Y: Clip Strength"]
@@ -325,12 +427,34 @@ class TSC_XYplot_LoRA_Plot:
         
         return (x_tuple, y_tuple)
 
-# ... (其他所有简单的 XY 输入节点) ...
+# XY输入(随机种)
+
 class TSC_XYplot_SeedsBatch:
     @classmethod
-    def INPUT_TYPES(cls): return {"required": {"batch_count": ("INT", {"default": XYPLOT_DEF, "min": 0, "max": XYPLOT_LIM}),}}
-    RETURN_TYPES, RETURN_NAMES, FUNCTION, CATEGORY = ("XY",), ("X or Y",), "xy_value", "🪐supernova/XY Plot/Inputs"
-    def xy_value(self, batch_count): return (("Seeds++ Batch", list(range(batch_count))),) if batch_count > 0 else (None,)
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "seed_offset": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+            },
+            "optional": {
+                "seed_list": ("SEED_CHAIN",)
+            }
+        }
+
+    RETURN_TYPES = ("SEED_CHAIN", "XY")
+    RETURN_NAMES = ("SEED List", "X or Y")
+    FUNCTION = "build_chain"
+    CATEGORY = "🪐supernova/XY Plot/Inputs"
+
+    def build_chain(self, seed_offset, seed_list=None):
+        # 如果有前置列表则继承，否则初始化为空
+        my_list = seed_list[:] if seed_list is not None else []
+        
+        # 添加当前的种子/偏移量
+        my_list.append(seed_offset)
+        
+        # "Seeds++ Batch" 是主节点识别的关键字，意为在基础种子及上累加
+        return (my_list, ("Seeds++ Batch", my_list))
 
 class TSC_XYplot_Steps:
     @classmethod
@@ -349,10 +473,27 @@ class TSC_XYplot_Sampler_Scheduler:
     @classmethod
     def INPUT_TYPES(cls):
         samplers, schedulers = ["None"] + comfy.samplers.KSampler.SAMPLERS, ["None"] + comfy.samplers.KSampler.SCHEDULERS
-        inputs = {"required": {"target_parameter": (cls.parameters,), "input_count": ("INT", {"default": XYPLOT_DEF, "min": 0, "max": XYPLOT_LIM})}}
-        for i in range(1, XYPLOT_LIM + 1): inputs["required"].update({f"sampler_{i}": (samplers,), f"scheduler_{i}": (schedulers,)})
+        
+        # 1. 先定义顶部的 target_parameter
+        inputs = {
+            "required": {
+                "target_parameter": (cls.parameters,), 
+            }
+        }
+        
+        # 2. 中间插入 1 到 50 个采样器/调度器槽位
+        for i in range(1, XYPLOT_LIM + 1):
+            inputs["required"][f"sampler_{i}"] = (samplers,)
+            inputs["required"][f"scheduler_{i}"] = (schedulers,)
+            
+        # 3. 最后插入 input_count，这样它就会出现在节点的最底部
+        # 充当了“缓冲地带”的作用，防止下拉菜单被遮挡
+        inputs["required"]["input_count"] = ("INT", {"default": XYPLOT_DEF, "min": 0, "max": XYPLOT_LIM})
+        
         return inputs
+
     RETURN_TYPES, RETURN_NAMES, FUNCTION, CATEGORY = ("XY",), ("X or Y",), "xy_value", "🪐supernova/XY Plot/Inputs"
+    
     def xy_value(self, target_parameter, input_count, **kwargs):
         xy_value, xy_type = [], ""
         if target_parameter == "scheduler":
@@ -393,21 +534,13 @@ class TSC_XYplot_LoRA_Batch:
 
 # 全新的统一 Sampler/Scheduler 列表构建节点 -----------------------------------
 class XY_Input_Sampler_Scheduler_Builder:
-    """
-    逐个构建一个 Sampler 与/或 Scheduler 的组合列表。
-    可以通过模式选择器来决定输出类型，以避免XY轴类型冲突。
-    每个节点既可以串联，也可以作为最后一个节点直接连接到 XY Plot。
-    """
-    # 关键修复点 1: 添加模式选择器
     MODES = ["Sampler & Scheduler", "Sampler Only", "Scheduler Only"]
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                # 将模式选择器添加到必需的输入中
                 "mode": (cls.MODES,),
-                
                 "sampler_name": (["None"] + comfy.samplers.KSampler.SAMPLERS,),
                 "scheduler_name": (["None"] + comfy.samplers.KSampler.SCHEDULERS,),
             },
@@ -421,50 +554,32 @@ class XY_Input_Sampler_Scheduler_Builder:
     FUNCTION = "build_list"
     CATEGORY = "🪐supernova/XY Plot/Inputs"
 
-    # 关键修复点 2: 在函数中接收新的 mode 参数
     def build_list(self, mode, sampler_name, scheduler_name, previous_list=None):
         my_list = previous_list[:] if previous_list is not None else []
-        
-        # 构建列表的逻辑保持不变，总是存储 (sampler, scheduler) 对
-        # 只有在 sampler 或 scheduler 至少有一个被选择时才添加
         if sampler_name != "None" or scheduler_name != "None":
-            sampler_val = sampler_name if sampler_name != "None" else "None" # 保留 "None" 作为占位符
+            sampler_val = sampler_name if sampler_name != "None" else "None" 
             scheduler_val = scheduler_name if scheduler_name != "None" else None
             my_list.append((sampler_val, scheduler_val))
         
-        # 关键修复点 3: 根据模式决定输出的 XY 类型和数据格式
         xy_output = None
         if my_list:
             if mode == "Sampler & Scheduler":
-                # 过滤掉 sampler 为 "None" 的项
                 valid_items = [item for item in my_list if item[0] != "None"]
-                # 输出 ("Sampler", [(s1, sc1), (s2, sc2), ...])
                 xy_output = ("Sampler", valid_items) if valid_items else None
             
             elif mode == "Sampler Only":
-                # 只提取 sampler，并过滤掉 "None"
                 samplers = [item[0] for item in my_list if item[0] != "None"]
                 if samplers:
-                    # 格式化为 XY Plot 需要的格式
                     xy_value = [(s, None) for s in samplers]
-                    # 输出 ("Sampler", [(s1, None), (s2, None), ...])
                     xy_output = ("Sampler", xy_value)
 
             elif mode == "Scheduler Only":
-                # 只提取 scheduler，并过滤掉 None
                 schedulers = [item[1] for item in my_list if item[1] is not None]
                 if schedulers:
-                    # 输出 ("Scheduler", [sc1, sc2, ...])
                     xy_output = ("Scheduler", schedulers)
-
-        # 返回更新后的列表和格式化好的 XY 数据
         return (my_list, xy_output)
 
 class XY_Input_Sampler_List_Builder:
-    """
-    逐个构建一个 Sampler 列表。
-    每个节点既可以串联，也可以作为最后一个节点直接连接到 XY Plot。
-    """
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -472,22 +587,16 @@ class XY_Input_Sampler_List_Builder:
                 "sampler_name": (["None"] + comfy.samplers.KSampler.SAMPLERS,),
             },
             "optional": {
-                # --- 修复 2: 规范化输入接口的 key ---
                 "previous_list": ("SAMPLER_LIST",)
             }
         }
-
-    # --- 修复 3: 优化输出接口的显示名称 ---
     RETURN_TYPES = ("SAMPLER_LIST", "XY")
     RETURN_NAMES = ("Chained List", "X or Y")
-    
     FUNCTION = "build_list"
     CATEGORY = "🪐supernova/XY Plot/Inputs"
 
-    # --- 修复 2: 函数参数名与上面的 key 保持一致 ---
     def build_list(self, sampler_name, previous_list=None):
         my_list = previous_list[:] if previous_list is not None else []
-        
         if sampler_name != "None":
             my_list.append(sampler_name)
         
@@ -495,15 +604,9 @@ class XY_Input_Sampler_List_Builder:
         if my_list:
             xy_value = [(s, None) for s in my_list]
             xy_output = ("Sampler", xy_value)
-
-        # --- 修复 1: 添加缺失的 return 语句 ---
         return (my_list, xy_output)
     
 class XY_Input_Scheduler_List_Builder:
-    """
-    逐个构建一个 Scheduler 列表。
-    每个节点既可以串联，也可以作为最后一个节点直接连接到 XY Plot。
-    """
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -511,41 +614,28 @@ class XY_Input_Scheduler_List_Builder:
                 "scheduler_name": (["None"] + comfy.samplers.KSampler.SCHEDULERS,),
             },
             "optional": {
-                # --- 修复 2: 规范化输入接口的 key ---
                 "previous_list": ("SCHEDULER_LIST",)
             }
         }
-
-    # --- 修复 3: 优化输出接口的显示名称 ---
     RETURN_TYPES = ("SCHEDULER_LIST", "XY")
     RETURN_NAMES = ("Chained List", "X or Y")
-    
     FUNCTION = "build_list"
     CATEGORY = "🪐supernova/XY Plot/Inputs"
 
-    # --- 修复 2: 函数参数名与上面的 key 保持一致 ---
     def build_list(self, scheduler_name, previous_list=None):
         my_list = previous_list[:] if previous_list is not None else []
-        
         if scheduler_name != "None":
             my_list.append(scheduler_name)
-
         xy_output = None
         if my_list:
             xy_output = ("Scheduler", my_list)
-
-        # --- 修复 1: 添加缺失的 return 语句 ---
         return (my_list, xy_output)
-#----------------------------------------------------------------------------
-# 在你的 xy_plot.py 中，添加这个全新的 Class
 
 class XY_Input_Dynamic_List_Builder:
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                # 唯一的永久控件：一个用于控制数量的整数输入框
-                # 我们给它一个特殊的名字 "input_count" 以便在 JS 中识别
                 "input_count": ("INT", {"default": 3, "min": 0, "max": 50, "step": 1}),
             }
         }
@@ -556,19 +646,10 @@ class XY_Input_Dynamic_List_Builder:
     CATEGORY = "🪐supernova/XY Plot/Inputs"
 
     def build_list(self, input_count, **kwargs):
-        """
-        这个函数会接收到 'input_count' 的值，
-        以及一个 kwargs 字典，包含了所有动态生成的控件值，
-        例如：{'sampler_1': 'euler', 'scheduler_1': 'normal', 'sampler_2': 'dpmpp_2m', ...}
-        """
         my_list = []
-        
-        # 根据 input_count 的值，我们循环并从 kwargs 中提取数据
         for i in range(1, input_count + 1):
             sampler_key = f"sampler_{i}"
             scheduler_key = f"scheduler_{i}"
-
-            # 从 kwargs 中获取值，如果不存在则使用默认值
             sampler_name = kwargs.get(sampler_key, "None")
             scheduler_name = kwargs.get(scheduler_key, "None")
 
@@ -576,39 +657,259 @@ class XY_Input_Dynamic_List_Builder:
                 scheduler_val = scheduler_name if scheduler_name != "None" else None
                 my_list.append((sampler_name, scheduler_val))
         
-        # 格式化为 XY Plot 需要的最终输出
         xy_output = ("Sampler", my_list) if my_list else None
-        
         return (xy_output,)
-#----------------------------------------------------------------
+    
+# XY提示词替换
+
+class XY_Input_PromptSR_Chain:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "search_txt": ("STRING", {"default": "", "multiline": False}),
+                "replace_txt": ("STRING", {"default": "", "multiline": False}),
+            },
+            "optional": {
+                "prompt_s_r_list": ("PROMPT_SR_LIST",),
+            }
+        }
+    
+    RETURN_TYPES = ("PROMPT_SR_LIST", "XY")
+    RETURN_NAMES = ("PromptSR List", "X or Y")
+    FUNCTION = "build_chain"
+    CATEGORY = "🪐supernova/XY Plot/Inputs"
+
+    def build_chain(self, search_txt, replace_txt, prompt_s_r_list=None):
+        my_list = prompt_s_r_list[:] if prompt_s_r_list is not None else []
+        my_list.append((search_txt, replace_txt))
+        return (my_list, ("PromptSR", my_list))
+
+
+class XY_Input_Checkpoint_Chain:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "ckpt_name": (["None"] + folder_paths.get_filename_list("checkpoints"),),
+            },
+            "optional": {
+                "ckpt_list": ("CHECKPOINT_LIST",),
+            }
+        }
+
+    RETURN_TYPES = ("CHECKPOINT_LIST", "XY")
+    RETURN_NAMES = ("ckpt List", "X or Y")
+    FUNCTION = "build_chain"
+    CATEGORY = "🪐supernova/XY Plot/Inputs"
+
+    def build_chain(self, ckpt_name, ckpt_list=None):
+        my_list = ckpt_list[:] if ckpt_list is not None else []
+        if ckpt_name != "None":
+            my_list.append(ckpt_name)
+        return (my_list, ("Checkpoint", my_list))
+
+
+class XY_Input_VAE_Chain:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "vae_name": (["None"] + folder_paths.get_filename_list("vae"),),
+            },
+            "optional": {
+                "vae_s_list": ("VAE_LIST",),
+            }
+        }
+
+    RETURN_TYPES = ("VAE_LIST", "XY")
+    RETURN_NAMES = ("VAE List", "X or Y")
+    FUNCTION = "build_chain"
+    CATEGORY = "🪐supernova/XY Plot/Inputs"
+
+    def build_chain(self, vae_name, vae_s_list=None):
+        my_list = vae_s_list[:] if vae_s_list is not None else []
+        if vae_name != "None":
+            my_list.append(vae_name)
+        return (my_list, ("VAE", my_list))
+
+
+class XY_Input_Denoise_Chain:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "denoise_value": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+            },
+            "optional": {
+                "denoise_s_list": ("DENOISE_LIST",)
+            }
+        }
+
+    RETURN_TYPES = ("DENOISE_LIST", "XY")
+    RETURN_NAMES = ("Denoise List", "X or Y")
+    FUNCTION = "build_chain"
+    CATEGORY = "🪐supernova/XY Plot/Inputs"
+
+    def build_chain(self, denoise_value, denoise_s_list=None):
+        my_list = denoise_s_list[:] if denoise_s_list is not None else []
+        my_list.append(denoise_value)
+        return (my_list, ("Denoise", my_list))
+
+# =================================================================================
+# 新增的批量输入节点 (Batch Inputs) - input_count 都在最后
+# =================================================================================
+
+class XY_Input_Seeds_Batch:
+    @classmethod
+    def INPUT_TYPES(cls):
+        inputs = {"required": {}}
+        # 1. 中间插入槽位
+        for i in range(1, XYPLOT_LIM + 1):
+            inputs["required"][f"seed_{i}"] = ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff})
+        
+        # 2. 底部插入计数器
+        inputs["required"]["input_count"] = ("INT", {"default": XYPLOT_DEF, "min": 0, "max": XYPLOT_LIM})
+        return inputs
+
+    RETURN_TYPES = ("XY",)
+    RETURN_NAMES = ("X or Y",)
+    FUNCTION = "xy_value"
+    CATEGORY = "🪐supernova/XY Plot/Inputs"
+
+    def xy_value(self, input_count, **kwargs):
+        # 收集非0的种子
+        seeds = []
+        for i in range(1, input_count + 1):
+            seed = kwargs.get(f"seed_{i}", 0)
+            seeds.append(seed)
+            
+        return (("Seeds++ Batch", seeds),) if seeds else (None,)
+
+
+class XY_Input_Checkpoint_Batch:
+    @classmethod
+    def INPUT_TYPES(cls):
+        ckpts = ["None"] + folder_paths.get_filename_list("checkpoints")
+        inputs = {"required": {}}
+        for i in range(1, XYPLOT_LIM + 1):
+            inputs["required"][f"ckpt_name_{i}"] = (ckpts,)
+            
+        inputs["required"]["input_count"] = ("INT", {"default": XYPLOT_DEF, "min": 0, "max": XYPLOT_LIM})
+        return inputs
+
+    RETURN_TYPES = ("XY",)
+    RETURN_NAMES = ("X or Y",)
+    FUNCTION = "xy_value"
+    CATEGORY = "🪐supernova/XY Plot/Inputs"
+
+    def xy_value(self, input_count, **kwargs):
+        ckpts = []
+        for i in range(1, input_count + 1):
+            ckpt = kwargs.get(f"ckpt_name_{i}", "None")
+            if ckpt != "None":
+                ckpts.append(ckpt)
+        return (("Checkpoint", ckpts),) if ckpts else (None,)
+
+
+class XY_Input_VAE_Batch:
+    @classmethod
+    def INPUT_TYPES(cls):
+        vaes = ["None"] + folder_paths.get_filename_list("vae")
+        inputs = {"required": {}}
+        for i in range(1, XYPLOT_LIM + 1):
+            inputs["required"][f"vae_name_{i}"] = (vaes,)
+            
+        inputs["required"]["input_count"] = ("INT", {"default": XYPLOT_DEF, "min": 0, "max": XYPLOT_LIM})
+        return inputs
+
+    RETURN_TYPES = ("XY",)
+    RETURN_NAMES = ("X or Y",)
+    FUNCTION = "xy_value"
+    CATEGORY = "🪐supernova/XY Plot/Inputs"
+
+    def xy_value(self, input_count, **kwargs):
+        vaes = []
+        for i in range(1, input_count + 1):
+            vae = kwargs.get(f"vae_name_{i}", "None")
+            if vae != "None":
+                vaes.append(vae)
+        return (("VAE", vaes),) if vaes else (None,)
+
+
+class XY_Input_PromptSR_Batch:
+    @classmethod
+    def INPUT_TYPES(cls):
+        inputs = {"required": {}}
+        for i in range(1, XYPLOT_LIM + 1):
+            inputs["required"][f"search_txt_{i}"] = ("STRING", {"default": "", "multiline": False})
+            inputs["required"][f"replace_txt_{i}"] = ("STRING", {"default": "", "multiline": False})
+            
+        inputs["required"]["input_count"] = ("INT", {"default": XYPLOT_DEF, "min": 0, "max": XYPLOT_LIM})
+        return inputs
+
+    RETURN_TYPES = ("XY",)
+    RETURN_NAMES = ("X or Y",)
+    FUNCTION = "xy_value"
+    CATEGORY = "🪐supernova/XY Plot/Inputs"
+
+    def xy_value(self, input_count, **kwargs):
+        prompt_sr = []
+        for i in range(1, input_count + 1):
+            s_txt = kwargs.get(f"search_txt_{i}", "")
+            r_txt = kwargs.get(f"replace_txt_{i}", "")
+            if s_txt != "": # 只有当搜索文本不为空时才添加
+                prompt_sr.append((s_txt, r_txt))
+        return (("PromptSR", prompt_sr),) if prompt_sr else (None,)
+
+#-----------------------------------------------------------
 # ======================================================================================================================
 # 节点映射
 # ======================================================================================================================
 NODE_CLASS_MAPPINGS = {
-    "XY Plot KSampler": StandaloneXYPlot,
-    "XY Plot Settings": XYPlotSettings,
-    "XY Input: Seeds": TSC_XYplot_SeedsBatch, 
-    "XY Input: Steps": TSC_XYplot_Steps,
-    "XY Input: CFG": TSC_XYplot_CFG, 
-    "XY Input: Sampler/Scheduler": TSC_XYplot_Sampler_Scheduler,
-    "XY Input: Denoise": TSC_XYplot_Denoise, 
-    "XY Input: LoRA Batch": TSC_XYplot_LoRA_Batch,
-    "XY Input: LoRA Plot": TSC_XYplot_LoRA_Plot,
+    "XY_Plot_KSampler": StandaloneXYPlot,
+    "XY_Plot_Settings": XYPlotSettings,
+    "XY_Input_Seeds": TSC_XYplot_SeedsBatch, 
+    "XY_Input_Steps": TSC_XYplot_Steps,
+    "XY_Input_CFG": TSC_XYplot_CFG, 
+    "XY_Input_Sampler_Scheduler_Batch": TSC_XYplot_Sampler_Scheduler,
+    "XY_Input_Denoise": TSC_XYplot_Denoise, 
+    "XY_Input_LoRA_Batch": TSC_XYplot_LoRA_Batch,
+    "XY_Input_LoRA_Plot": TSC_XYplot_LoRA_Plot,
     "XY_Input_Sampler_List_Builder": XY_Input_Sampler_List_Builder,
     "XY_Input_Scheduler_List_Builder": XY_Input_Scheduler_List_Builder,
     "XY_Input_Sampler_Scheduler_Builder": XY_Input_Sampler_Scheduler_Builder,
+    "XY_Input_PromptSR_Chain": XY_Input_PromptSR_Chain,
+    "XY_Input_Checkpoint_Chain": XY_Input_Checkpoint_Chain,
+    "XY_Input_VAE_Chain": XY_Input_VAE_Chain,
+    "XY_Input_Denoise_Chain": XY_Input_Denoise_Chain,
+    "XY_Input_Seeds_Batch": XY_Input_Seeds_Batch,
+    "XY_Input_Checkpoint_Batch": XY_Input_Checkpoint_Batch,
+    "XY_Input_VAE_Batch": XY_Input_VAE_Batch,
+    "XY_Input_PromptSR_Batch": XY_Input_PromptSR_Batch,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "XY Plot KSampler": "XY Plot with KSampler",
-    "XY Plot Settings": "XY Plot Settings 📐",
-    "XY Input: Seeds": "XY Input: Seeds ⚙️",
-    "XY Input: Steps": "XY Input: Steps ⚙️",
-    "XY Input: CFG": "XY Input: CFG ⚙️",
-    "XY Input: Sampler/Scheduler": "XY Input: Sampler/Scheduler ⚙️",
-    "XY Input: Denoise": "XY Input: Denoise ⚙️",
-    "XY Input: LoRA Batch": "XY Input: LoRA Batch (from Path) ⚙️",
-    "XY Input: LoRA Plot": "XY Input: LoRA Plot ⚙️",
-    "XY_Input_Sampler_List_Builder": "XY Input: Add Sampler ⚙️",
-    "XY_Input_Scheduler_List_Builder": "XY Input: Add Scheduler ⚙️",
-    "XY_Input_Sampler_Scheduler_Builder": "XY Input: Add Sampler/Scheduler ⚙️",
+    "XY_Plot_KSampler": "XY Plot with KSampler",
+    "XY_Plot_Settings": "XY Plot Settings 📐",
+#常规 XY
+    "XY_Input_Steps": "XY Input: Steps ⚙️",
+    "XY_Input_CFG": "XY Input: CFG ⚙️",
+    "XY_Input_Denoise": "XY Input: Denoise ⚙️",
+    "XY_Input_LoRA_Batch": "XY Input: LoRA Batch (from Path) ⚙️",
+    "XY_Input_LoRA_Plot": "XY Input: LoRA Plot ⚙️",
+#批次 XY
+    "XY_Input_Sampler_Scheduler_Batch": "XY Input: Sampler/Scheduler Batch🗒️⚙️",
+    "XY_Input_Seeds_Batch": "XY Input: Seeds Batch🗒️⚙️",
+    "XY_Input_Checkpoint_Batch": "XY Input: Checkpoint Batch🗒️⚙️",
+    "XY_Input_VAE_Batch": "XY Input: VAE Batch🗒️⚙️",
+    "XY_Input_PromptSR_Batch": "XY Input: Prompt S/R Batch🗒️⚙️",
+#串联 XY
+    "XY_Input_Seeds": "XY Input: Seeds Chain🔗⚙️",
+    "XY_Input_Scheduler_List_Builder": "XY Input: Add Scheduler Chain🔗⚙️",
+    "XY_Input_Sampler_Scheduler_Builder": "XY Input: Add Sampler/Scheduler Chain🔗⚙️",
+    "XY_Input_Sampler_List_Builder": "XY Input: Add Sampler Chain🔗⚙️",
+    "XY_Input_PromptSR_Chain": "XY Input: Prompt S/R Chain🔗⚙️",
+    "XY_Input_Checkpoint_Chain": "XY Input: Checkpoint Chain🔗⚙️",
+    "XY_Input_VAE_Chain": "XY Input: VAE Chain🔗⚙️",
+    "XY_Input_Denoise_Chain": "XY Input: Denoise Chain🔗⚙️",
 }

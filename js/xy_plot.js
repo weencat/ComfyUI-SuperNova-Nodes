@@ -1,44 +1,64 @@
 import { app } from "/scripts/app.js";
 
 // =================================================================================
-// SECTION 1: "XY_Input_Sampler_Scheduler_Builder" 节点的动态UI
-// 用法: 根据节点上 "mode" 下拉菜单的选择，动态地重新排列控件，以避免出现空白占位。
-// 原理: 当 "mode" 改变时，它不是隐藏控件，而是重新构建节点的控件数组(this.widgets)，
-//       只包含当前模式下应该显示的控件，然后刷新节点布局。
+// 通用辅助函数
+// =================================================================================
+
+const HIDDEN_TYPE = "supernova_hidden_widget";
+
+/**
+ * 切换控件的显示/隐藏
+ */
+function toggleWidgetVisibility(node, widget, show) {
+    if (!widget) return;
+
+    // 记录原始属性
+    if (!widget.origProps) {
+        widget.origProps = {
+            type: widget.type,
+            computeSize: widget.computeSize
+        };
+    }
+
+    if (show) {
+        // 恢复显示
+        if (widget.type === HIDDEN_TYPE) {
+            widget.type = widget.origProps.type;
+            widget.computeSize = widget.origProps.computeSize;
+        }
+    } else {
+        // 隐藏
+        widget.type = HIDDEN_TYPE;
+        widget.computeSize = () => [0, -4]; // 隐藏时不占空间
+    }
+}
+
+
+// =================================================================================
+// SECTION 1: Builder 节点 (XY_Input_Sampler_Scheduler_Builder)
 // =================================================================================
 
 function setupSamplerSchedulerBuilder(nodeType, nodeData, app) {
-    // 确保这个逻辑只应用在我们自定义的 "XY_Input_Sampler_Scheduler_Builder" 节点上
     if (nodeData.name === "XY_Input_Sampler_Scheduler_Builder") {
-        const onNodeCreated = nodeType.prototype.onNodeCreated; // 保存原始的 onNodeCreated 方法
-
-        // 扩展 onNodeCreated 方法，它在节点被创建时执行
+        const onNodeCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
-            if (onNodeCreated) {
-                onNodeCreated.apply(this, arguments);
-            }
+            if (onNodeCreated) onNodeCreated.apply(this, arguments);
 
-            // 找到我们需要操作的三个控件
             const modeWidget = this.widgets.find((w) => w.name === "mode");
             const samplerWidget = this.widgets.find((w) => w.name === "sampler_name");
             const schedulerWidget = this.widgets.find((w) => w.name === "scheduler_name");
+            if (!modeWidget || !samplerWidget || !schedulerWidget) return;
 
-            if (!modeWidget || !samplerWidget || !schedulerWidget) return; // 如果找不到任何一个，则退出
+            const originalWidgets = this.widgets.slice();
 
-            const originalWidgets = this.widgets.slice(); // 保存一份节点最初始的、完整的控件列表
-
-            // 定义核心的更新函数
-            const updateWidgetsAndLayout = (modeValue) => {
-                let newWidgets = []; // 创建一个新的空数组来存放将要显示的控件
-
-                // 首先，将所有静态的、位置不变的控件添加到新数组中
+            const updateWidgets = (modeValue) => {
+                let newWidgets = [];
                 for (const w of originalWidgets) {
                     if (w.name !== "sampler_name" && w.name !== "scheduler_name") {
                         newWidgets.push(w);
                     }
                 }
-
-                // 然后，根据 mode 的值，决定将哪个（或哪些）动态控件按顺序添加到新数组中
+                
                 if (modeValue === "Sampler & Scheduler") {
                     newWidgets.push(samplerWidget, schedulerWidget);
                 } else if (modeValue === "Sampler Only") {
@@ -47,127 +67,149 @@ function setupSamplerSchedulerBuilder(nodeType, nodeData, app) {
                     newWidgets.push(schedulerWidget);
                 }
 
-                // 最关键的一步：用我们构建好的新数组，直接替换掉节点当前的控件数组
                 this.widgets = newWidgets;
-
-                // 最后，强制节点根据新的控件布局重新计算尺寸并重绘
                 this.computeSize();
                 this.setDirtyCanvas(true, true);
             };
 
-            // 拦截 mode 控件的回调函数，当它的值改变时，执行我们的更新逻辑
-            const originalCallback = modeWidget.callback;
             modeWidget.callback = (value) => {
-                if (originalCallback) originalCallback.apply(this, arguments);
-                updateWidgetsAndLayout(value);
+                updateWidgets(value);
             };
 
-            // 在节点首次加载时，立即运行一次更新，以保证初始状态正确
-            setTimeout(() => updateWidgetsAndLayout(modeWidget.value), 0);
+            setTimeout(() => updateWidgets(modeWidget.value), 0);
         };
     }
 }
 
 
 // =================================================================================
-// SECTION 2: “选多少，显示多少”的动态显隐逻辑
-// 用法: 为那些带有 "count" (数量) 输入框的节点提供支持。当你改变数量时，
-//       它会自动显示或隐藏对应数量的输入控件组（例如 LoRA 名称、权重等）。
-// 原理: 通过修改控件的 `type` 为一个不可见的类型并把尺寸设为0，来实现可靠的隐藏。
-//       当 "count" 控件的值改变时，它会遍历所有受控的控件，并根据新的数量
-//       决定哪些该显示，哪些该隐藏，然后刷新节点。
-// (此逻辑改编自 "Efficiency Nodes" 的 widgethider.js)
+// SECTION 2: 通用 Batch 节点 (Sampler, Scheduler, Seed, Checkpoint, VAE, PromptSR)
 // =================================================================================
 
-let origProps = {}; // 用于存储控件原始属性的对象，以便恢复
-const HIDDEN_TAG = "tschide"; // 一个自定义的、不会被渲染的控件类型名
+// 定义需要应用此逻辑的节点列表
+// 关键修复：同时包含 Python 中的映射键名 AND 类名，防止匹配失败
+const BATCH_NODES = [
+    "XY_Input_Sampler_Scheduler_Batch", // Class Name (修复这里)
+    "XY_Input_Seeds_Batch",
+    "XY_Input_Checkpoint_Batch",
+    "XY_Input_VAE_Batch",
+    "XY_Input_PromptSR_Batch"
+];
 
-// 辅助函数：根据名称在节点内查找控件
-function findWidgetByName(node, name) {
-    return node.widgets ? node.widgets.find((w) => w.name === name) : null;
-}
-
-// 核心函数：切换单个控件的显示或隐藏状态
-function toggleWidget(node, widget, show = false, suffix = "") {
-    if (!widget) return; // 如果找不到控件，则退出
-
-    // 如果是第一次操作这个控件，就保存它的原始类型和尺寸计算函数
-    if (!origProps[widget.name]) {
-        origProps[widget.name] = { origType: widget.type, origComputeSize: widget.computeSize };
-    }
-
-    // 根据 `show` 参数决定是恢复原始类型（显示）还是设置为隐藏类型（隐藏）
-    widget.type = show ? origProps[widget.name].origType : HIDDEN_TAG + suffix;
-    // 隐藏时，让它的尺寸计算函数返回一个负值高度，使其不占空间
-    widget.computeSize = show ? origProps[widget.name].origComputeSize : () => [0, -4];
-
-    // 重新计算并设置节点的高度，以适应控件的变化
-    const newHeight = node.computeSize()[1];
-    node.setSize([node.size[0], newHeight]);
-}
-
-// 批量处理函数：根据数量值，显隐一组控件
-function handleVisibilityByCount(node, countValue, baseNames) {
-    if (!baseNames || baseNames.length === 0) return;
-    
-    const maxCount = 50; // 预设的最大控件数量
-
-    // 循环检查从 1 到 50 的所有控件
-    for (let i = 1; i <= maxCount; i++) {
-        // 遍历所有需要控制的控件基础名 (如 'lora_name', 'lora_wt')
-        for(const baseName of baseNames) {
-            const widget = findWidgetByName(node, `${baseName}_${i}`); // 组合成完整的控件名，如 'lora_name_1'
-            if(widget) {
-                // 如果当前循环次数 i 小于等于指定的数量 countValue，则显示；否则隐藏。
-                toggleWidget(node, widget, i <= countValue);
-            }
-        }
-    }
-}
-
-// 节点与逻辑的映射表：定义哪个节点需要“数量选择”功能
-const widgetHiderHandlers = {
-    // 示例1: "LoRA Stacker" 节点
-    "LoRA Stacker": (node) => {
-        // 找到控制数量的控件，名为 "lora_count"
-        const countWidget = findWidgetByName(node, "lora_count");
-        if (countWidget) {
-            // 当 "lora_count" 的值改变时，执行我们的批量处理函数
-            const originalCallback = countWidget.callback;
-            countWidget.callback = (value) => {
-                if (originalCallback) originalCallback.apply(this, arguments);
-                // 控制这些基础名的控件的显示/隐藏
-                handleVisibilityByCount(node, value, ["lora_name", "lora_wt", "model_str", "clip_str"]);
-            };
-            // 首次加载时也运行一次
-            handleVisibilityByCount(node, countWidget.value, ["lora_name", "lora_wt", "model_str", "clip_str"]);
-        }
-    },
-    // 示例2: "XY Input: LoRA" 节点
-    "XY Input: LoRA": (node) => {
-        const countWidget = findWidgetByName(node, "lora_count");
-        if (countWidget) {
-            const originalCallback = countWidget.callback;
-            countWidget.callback = (value) => {
-                if (originalCallback) originalCallback.apply(this, arguments);
-                handleVisibilityByCount(node, value, ["lora_name", "model_str", "clip_str"]);
-            };
-            handleVisibilityByCount(node, countWidget.value, ["lora_name", "model_str", "clip_str"]);
-        }
-    },
-    // 你可以继续在这里添加更多节点的配置...
-};
-
-// 设置函数：将“数量选择”逻辑应用到所有在映射表中定义的节点上
-function setupWidgetHider(nodeType, nodeData, app) {
-    if (widgetHiderHandlers[nodeData.name]) {
+function setupBatchNode(nodeType, nodeData, app) {
+    // 检查当前节点是否在我们的支持列表中
+    if (BATCH_NODES.includes(nodeData.name)) {
         const onNodeCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
-            if (onNodeCreated) {
-                onNodeCreated.apply(this, arguments);
+            if (onNodeCreated) onNodeCreated.apply(this, arguments);
+
+            const node = this;
+            const countWidget = node.widgets.find(w => w.name === "input_count");
+            // target_parameter 是可选的，只有 Sampler/Scheduler 节点有
+            const targetWidget = node.widgets.find(w => w.name === "target_parameter");
+
+            if (!countWidget) return;
+
+            const refreshVisibility = () => {
+                const count = countWidget.value;
+                // 获取当前模式，如果没有这个控件或值为空，则默认为全选模式，避免逻辑错误
+                const target = targetWidget ? (targetWidget.value || "sampler & scheduler") : ""; 
+
+                for (const w of node.widgets) {
+                    // 正则匹配：匹配所有可能的动态控件前缀
+                    const match = w.name.match(/^(sampler|scheduler|seed|ckpt_name|vae_name|search_txt|replace_txt)_(\d+)$/);
+                    
+                    if (match) {
+                        const type = match[1]; 
+                        const index = parseInt(match[2], 10); 
+
+                        let shouldShow = true;
+
+                        // 1. 数量判断
+                        if (index > count) {
+                            shouldShow = false;
+                        }
+
+                        // 2. 特殊模式判断 (仅针对 Sampler/Scheduler)
+                        if (shouldShow && target) {
+                            // 如果是 sampler 控件，但模式字符串里不包含 "sampler"，则隐藏
+                            if (type === "sampler" && !target.includes("sampler")) shouldShow = false;
+                            // 如果是 scheduler 控件，但模式字符串里不包含 "scheduler"，则隐藏
+                            if (type === "scheduler" && !target.includes("scheduler")) shouldShow = false;
+                        }
+
+                        toggleWidgetVisibility(node, w, shouldShow);
+                    }
+                }
+
+                // 收缩高度：重置为最小高度，让 LiteGraph 自动计算合适的包裹高度
+                node.size[1] = 1; 
+                node.setSize(node.computeSize());
+                app.graph.setDirtyCanvas(true, true);
+            };
+
+            // 绑定 count 回调
+            const originalCountCallback = countWidget.callback;
+            countWidget.callback = (value, canvas, node, pos, e) => {
+                refreshVisibility();
+                if (originalCountCallback) originalCountCallback(value, canvas, node, pos, e);
+            };
+
+            // 绑定 target 回调 (如果存在)
+            if (targetWidget) {
+                const originalTargetCallback = targetWidget.callback;
+                targetWidget.callback = (value, canvas, node, pos, e) => {
+                    refreshVisibility();
+                    if (originalTargetCallback) originalTargetCallback(value, canvas, node, pos, e);
+                };
             }
-            // 当节点被创建时，调用在映射表中为它指定的处理函数
-            widgetHiderHandlers[this.comfyClass](this);
+
+            // 初始化：延迟一点执行确保节点已完全渲染
+            setTimeout(() => refreshVisibility(), 50);
+        };
+    }
+}
+
+
+// =================================================================================
+// SECTION 3: 其他通用节点 (LoRA 等)
+// =================================================================================
+
+const widgetHiderHandlers = {
+    "LoRA Stacker": ["lora_count", ["lora_name", "lora_wt", "model_str", "clip_str"]],
+    "XY Input: LoRA": ["lora_count", ["lora_name", "model_str", "clip_str"]]
+};
+
+function setupGenericWidgetHider(nodeType, nodeData, app) {
+    if (widgetHiderHandlers[nodeData.name]) {
+        const [countName, targetBases] = widgetHiderHandlers[nodeData.name];
+
+        const onNodeCreated = nodeType.prototype.onNodeCreated;
+        nodeType.prototype.onNodeCreated = function () {
+            if (onNodeCreated) onNodeCreated.apply(this, arguments);
+
+            const countWidget = this.widgets.find(w => w.name === countName);
+            if (!countWidget) return;
+
+            const handleUpdate = (count) => {
+                const maxCount = 50; 
+                for (let i = 1; i <= maxCount; i++) {
+                    for (const base of targetBases) {
+                        const w = this.widgets.find(w => w.name === `${base}_${i}`);
+                        if (w) toggleWidgetVisibility(this, w, i <= count);
+                    }
+                }
+                this.size[1] = 1;
+                this.setSize(this.computeSize());
+            };
+
+            const cb = countWidget.callback;
+            countWidget.callback = (val, ...args) => {
+                handleUpdate(val);
+                if (cb) cb(val, ...args);
+            };
+            
+            setTimeout(() => handleUpdate(countWidget.value), 50);
         };
     }
 }
@@ -175,17 +217,16 @@ function setupWidgetHider(nodeType, nodeData, app) {
 
 // =================================================================================
 // 最终注册
-// 用这一个扩展来统一加载我们所有的动态UI增强功能。
 // =================================================================================
 
 app.registerExtension({
-    name: "supernova.XYPlot.AllDynamicWidgets", // 为整个扩展起一个统一的名字
-
+    name: "supernova.XYPlot.AllDynamicWidgets",
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
-        // 1. 应用我们为 "XY_Input_Sampler_Scheduler_Builder" 节点编写的动态布局逻辑
         setupSamplerSchedulerBuilder(nodeType, nodeData, app);
-
-        // 2. 应用我们为 "Efficiency Nodes" 风格的节点编写的“选多少、显示多少”逻辑
-        setupWidgetHider(nodeType, nodeData, app);
+        
+        // 应用修复后的 setupBatchNode
+        setupBatchNode(nodeType, nodeData, app);
+        
+        setupGenericWidgetHider(nodeType, nodeData, app);
     }
 });
