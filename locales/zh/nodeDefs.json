@@ -51,6 +51,7 @@
             }
         }
     },
+    
     "LoadImagewithSubfolders": {
         "display_name": "加载图片上传📂"
     },
@@ -908,6 +909,25 @@
             },
             "bg_mode": {
                 "name": "背景模式"
+            }
+        }
+    },
+    "ImageCompareAndSelect": {
+        "display_name": "图像比较与选择 ⏯️🖼️",
+        "inputs": {
+            "image_1": {
+                "name": "图片1"
+            },
+            "image_2": {
+                "name": "图片2"
+            },
+            "seed": {
+                "name": "随机种"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "输出点"
             }
         }
     },
