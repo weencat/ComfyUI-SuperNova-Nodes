@@ -10,6 +10,7 @@ import shutil
 from server import PromptServer
 from aiohttp import web
 import torchaudio
+import scipy.io.wavfile
 
 # ========================================================
 # API: 统一预览接口
@@ -129,7 +130,7 @@ class SimpleVideoSaver:
         return {
             "required": {
                 "image": ("IMAGE", ),
-                "frame_rate": ("INT", {"default": 24, "min": 1, "max": 120, "step": 1}),
+                "frame_rate": ("FLOAT", {"default": 24, "min": 1, "max": 120, "step": 1}),
                 "filename_prefix": ("STRING", {"default": "Video_{date}", "tooltip": "可用占位符：\n- {date}: 年-月-日\n- {time}: 时-分-秒"}),
                 "format": ([
                     "video/h264-mp4", "video/h265-mp4", "video/webm", "video/avl-webm", 
@@ -183,8 +184,17 @@ class SimpleVideoSaver:
                 if waveform is not None:
                     temp_audio_file = os.path.join(folder_paths.get_temp_directory(), f"temp_audio_{filename}_{counter}.wav")
                     if waveform.dim() == 3: waveform = waveform[0]
-                    torchaudio.save(temp_audio_file, waveform, sample_rate)
-                    audio_path_arg = temp_audio_file
+                # --- 修复开始：使用 scipy 替代 torchaudio.save ---
+                # 1. 转换成 numpy
+                audio_data = waveform.detach().cpu().numpy()
+                # 2. torchaudio 格式是 [channels, samples], scipy 格式是 [samples, channels]
+                if audio_data.ndim == 2:
+                    audio_data = audio_data.T
+                # 3. 写入临时文件
+                scipy.io.wavfile.write(temp_audio_file, sample_rate, audio_data)
+                # --- 修复结束 ---
+                audio_path_arg = temp_audio_file
+
             except Exception as e:
                 print(f"[SimpleVideoSaver] Audio processing error: {e}")
 
@@ -222,7 +232,13 @@ class SimpleVideoSaver:
 
             if format not in ["image/gif", "image/webp", "image/apng"]:
                 writer_kwargs["fps"] = frame_rate
-                if audio_path_arg: writer_kwargs["audio"] = audio_path_arg
+                writer_kwargs["macro_block_size"] = 1 # 允许任意尺寸的宽高
+                if audio_path_arg: 
+                    writer_kwargs["audio_path"] = audio_path_arg  # 必须是 audio_path
+                    writer_kwargs["audio_codec"] = "aac" 
+                
+                # 关键修复：防止长宽不是16倍数导致的报错
+                writer_kwargs["macro_block_size"] = 1 
 
             if "libx" in writer_kwargs.get("codec", ""):
                 crf = 19 if quality == "high" else 23 if quality == "medium" else 28
@@ -283,14 +299,14 @@ class SimpleLoadVideoPath:
         return {
             "required": {
                 "video_path": ("STRING", {"default": "X:/path/to/video.mp4", "multiline": False}),
-                "frame_load_cap": ("INT", {"default": 0, "min": 0, "max": 10000, "step": 1}),
-                "skip_first_frames": ("INT", {"default": 0, "min": 0, "step": 1}),
+                "frame_load_cap": ("FLOAT", {"default": 0, "min": 0, "max": 10000, "step": 1}),
+                "skip_first_frames": ("FLOAT", {"default": 0, "min": 0, "step": 1}),
                 "select_every_nth": ("INT", {"default": 1, "min": 1, "step": 1}),
                 "select_frame_index": ("INT", {"default": -1, "min": -1, "max": 999999, "step": 1, "tooltip": "-1: 原始视频\n 0: 应用cap/skip/nth后的预览视频\n >0: 提取第n张图(1为第1帧)"}),
             },
         }
 
-    RETURN_TYPES = ("IMAGE", "INT", "INT", "INT", "INT", "AUDIO")
+    RETURN_TYPES = ("IMAGE", "FLOAT", "FLOAT", "INT", "INT", "AUDIO")
     RETURN_NAMES = ("image", "frame_count", "fps", "width", "height", "audio")
     FUNCTION = "load_video"
     CATEGORY = "🪐supernova/video"

@@ -206,8 +206,8 @@ class ImageCompareAndSelect:
     def INPUT_TYPES(s):
         return {
             "required": {
-                # 种子用于控制唯一性，触发重跑
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+                # 1. 将 "seed" 改名为 "compare_id"，绕开 ComfyUI 对 "seed" 这个词的特殊 UI 渲染逻辑
+                "compare_id": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             },
             "optional": {
                 "image_1": ("IMAGE",),
@@ -226,14 +226,13 @@ class ImageCompareAndSelect:
     CATEGORY = "🪐supernova/Image"
     OUTPUT_NODE = True
 
-    def run(self, seed, unique_id, image_1=None, image_2=None, prompt=None, extra_pnginfo=None):
-        # 1. 借助 PreviewImage 将图片保存到临时目录，生成 UI 预览数据
+    # 2. 这里参数名也要从 seed 改为 compare_id
+    def run(self, compare_id, unique_id, image_1=None, image_2=None, prompt=None, extra_pnginfo=None):
         previewer = PreviewImage()
         ui_images = { "1": [], "2": [] }
         
         def save_and_get_meta(img_tensor, key):
             if img_tensor is not None:
-                # 添加随机数防止浏览器缓存
                 prefix = f"compare_{unique_id}_{key}_{random.randint(1, 1000)}"
                 res = previewer.save_images(img_tensor, prefix, prompt, extra_pnginfo)
                 return res['ui']['images']
@@ -242,22 +241,20 @@ class ImageCompareAndSelect:
         ui_images["1"] = save_and_get_meta(image_1, "1")
         ui_images["2"] = save_and_get_meta(image_2, "2")
 
-        # 2. 主动发送事件给前端
         PromptServer.instance.send_sync("supernova_preview_update", {
             "node_id": unique_id,
             "images": ui_images
         })
 
-        # 3. 暂停并等待用户选择
-        decision = wait_for_decision(unique_id, seed)
+        # 3. 传入 compare_id 确保逻辑一致
+        decision = wait_for_decision(unique_id, compare_id)
 
-        # 4. 根据选择返回结果
         result = None
         if decision == "1": result = image_1
         elif decision == "2": result = image_2
         
         return (result, )
-
+    
 # ------------------------------------------------------------------------------
 # Image Add Text Node
 # ------------------------------------------------------------------------------

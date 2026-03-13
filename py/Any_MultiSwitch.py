@@ -69,12 +69,73 @@ class AnyMultiSwitchScalable:
         # 如果所有输入都为空或未连接，则安全地返回 None
         return (None,)
 
-# --- 节点注册信息 ---
+#-------万能插槽----------
+class AnyRerouteAdapter5:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {},
+            "optional": {
+                "in_1": ("*",),
+                "in_2": ("*",),
+                "in_3": ("*",),
+                "in_4": ("*",),
+                "in_5": ("*",),
+            }
+        }
 
+    RETURN_TYPES = ("*", "*", "*", "*", "*")
+    RETURN_NAMES = ("out_1", "out_2", "out_3", "out_4", "out_5")
+    FUNCTION = "forward"
+    CATEGORY = "🪐supernova/Switches"
+
+    def forward(self, **kwargs):
+        return (
+            kwargs.get("in_1", None),
+            kwargs.get("in_2", None),
+            kwargs.get("in_3", None),
+            kwargs.get("in_4", None),
+            kwargs.get("in_5", None),
+        )
+
+    @classmethod
+    def VALIDATE_INPUTS(s, **kwargs):
+        return True
+
+class AnyBooleanSwitch:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                # boolean 会在前端变成一个开关控件 (Widget)
+                "boolean": ("BOOLEAN", {"default": False, "label_on": "True", "label_off": "False"}),
+            },
+            "optional": {
+                # 移到 optional，允许用户只连其中一个端口
+                "input_true": (any_type,),
+                "input_false": (any_type,),
+            }
+        }
+
+    RETURN_TYPES = (any_type,)
+    RETURN_NAMES = ("output",)
+    FUNCTION = "switch"
+    CATEGORY = "🪐supernova/Switches"
+
+    # 添加默认值 =None，防止没连线时 Python 报错
+    def switch(self, boolean, input_false=None, input_true=None):
+        # 逻辑：返回被选中的那个接口的值
+        return (input_true if boolean else input_false,)
+
+# --- 节点注册信息 ---
 NODE_CLASS_MAPPINGS = {
    "AnyMultiSwitchScalable": AnyMultiSwitchScalable,
+   "AnyRerouteAdapter5": AnyRerouteAdapter5,
+   "AnyBooleanSwitch": AnyBooleanSwitch,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "AnyMultiSwitchScalable": "AnyMultiSwitchScalable 🎚️",
+    "AnyRerouteAdapter5": "Reroute Adapter 🟰",
+    "AnyBooleanSwitch": "Boolean Switch ⚯",
 }

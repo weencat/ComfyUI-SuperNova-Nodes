@@ -36,7 +36,7 @@ async def get_all_image_files(request):
         "temp": folder_paths.get_temp_directory(),
         "input": folder_paths.get_input_directory(),
     }
-    exclude_folders = {"temp"}
+    exclude_folders = {}
     
     files_with_meta = []
     for dir_type, base_path in search_locations.items():
@@ -307,6 +307,11 @@ class LoadImageUnified:
         m = hashlib.sha256()
         with open(image_path, 'rb') as f: m.update(f.read())
         return m.digest().hex()
+    
+    @classmethod
+    def VALIDATE_INPUTS(cls, image):
+        # 强制返回 True，允许加载不在列表中的路径（尤其是临时文件）
+        return True
 
 # ============================================================================
 # 节点 4: load_image_by_path (改为支持 temp 路径)
