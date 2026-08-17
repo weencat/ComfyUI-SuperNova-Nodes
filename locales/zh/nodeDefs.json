@@ -1599,5 +1599,62 @@
             }
         }
     },
+    "FlowControlSwitch20": {
+        "display_name": "流程控制器 2.0 🕹️",
+        "inputs": {
+            "any_input": {
+                "name": "任意输入"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "任意输出"
+            }
+        }
+    },
+    "ImagePreviewBreakpoint20": {
+        "display_name": "图片预览控制 2.0 ⏯️",
+        "inputs": {
+            "image": {
+                "name": "图像"
+            }
+        }
+    },
+    "ImageCompareBreakpoint20": {
+        "display_name": "图像比较与选择 2.0 ⏯️🖼️",
+        "inputs": {
+            "image_a": {
+                "name": "图像A"
+            },
+            "image_b": {
+                "name": "图像B"
+            }
+        }
+    },
+    "LoadAllImagesFromPathAsList": {
+        "display_name": "从路径加载所有图像📜",
+        "inputs": {
+            "directory_path": {
+                "name": "目录路径"
+            },
+            "image_load_cap": {
+                "name": "图像加载能力"
+            },
+            "recursive": {
+                "name": "递归"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "图片集"
+            },
+            "1": {
+                "name": "遮罩集"
+            },
+            "2": {
+                "name": "计数"
+            }
+        }
+    },
     "supernova": "🪐超新星节点"
 }

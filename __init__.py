@@ -95,8 +95,27 @@ for root, dirs, files in os.walk(PY_FOLDER):
 
 
 # =================================================================================
-# 4. 导出最终的 MAPPINGS
+# 4. 导出 ComfyUI 2.0 接入点 (新增部分)
 # =================================================================================
-__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
+async def comfy_entrypoint():
+    from comfy_api.latest import ComfyExtension
+    
+    class SupernovaCombinedExtension(ComfyExtension):
+        async def get_node_list(self) -> list:
+            # 自动将扫描到的所有继承自 IO.ComfyNode 的类加入 2.0 列表
+            node_list = []
+            try:
+                from comfy_api.latest import IO
+                for cls in NODE_CLASS_MAPPINGS.values():
+                    if isinstance(cls, type) and issubclass(cls, IO.ComfyNode):
+                        node_list.append(cls)
+            except:
+                pass
+            return node_list
 
-print(f"✅ 超新星已完成变星。共加载 {len(NODE_CLASS_MAPPINGS)} 个节点，并已注册 API 接入点。")
+    return SupernovaCombinedExtension()
+
+# 导出最终变量
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY", "comfy_entrypoint"]
+
+print(f"📸超新星已完成变星✨。共加载 {len(NODE_CLASS_MAPPINGS)} 个节点。")

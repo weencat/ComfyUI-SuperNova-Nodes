@@ -419,6 +419,110 @@ class load_image_by_path:
             return (output_images[0], output_masks[0])
 
 # ============================================================================
+# 节点 6: LoadAllImagesFromPathAsList (不改变尺寸，以列表形式载入所有图片)
+# ============================================================================
+class LoadAllImagesFromPathAsList:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                # 输入文件夹的绝对路径
+                "directory_path": ("STRING", {"default": "C:/path/to/your/images", "multiline": False}),
+            },
+            "optional": {
+                # 限制最大读取数量，0表示不限制读取全部
+                "image_load_cap": ("INT", {"default": 0, "min": 0, "max": 10000, "step": 1}),
+                # 是否搜索子文件夹
+                "recursive": ("BOOLEAN", {"default": False}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE", "MASK", "INT")
+    RETURN_NAMES = ("images (List)", "masks (List)", "count")
+    
+    # 【核心魔法】：告诉 ComfyUI 前两个输出是列表 (List) 而不是单个对象
+    OUTPUT_IS_LIST = (True, True, False) 
+    
+    FUNCTION = "load_images"
+    CATEGORY = "🪐supernova/ImageLoader"
+
+    def load_images(self, directory_path, image_load_cap=0, recursive=False):
+        directory_path = directory_path.strip().strip('"').strip("'")
+        
+        # 错误占位符（也需要以列表形式返回）
+        empty_img = [torch.zeros((1, 64, 64, 3), dtype=torch.float32)]
+        empty_mask = [torch.zeros((1, 64, 64), dtype=torch.float32)]
+
+        if not os.path.exists(directory_path) or not os.path.isdir(directory_path):
+            print(f"Warning: Directory not found -> {directory_path}")
+            return (empty_img, empty_mask, 0)
+
+        image_files = []
+        if recursive:
+            for root, dirs, files in os.walk(directory_path):
+                for file in files:
+                    if os.path.splitext(file)[1].lower() in IMAGE_EXTENSIONS:
+                        image_files.append(os.path.join(root, file))
+        else:
+            for file in os.listdir(directory_path):
+                if os.path.splitext(file)[1].lower() in IMAGE_EXTENSIONS:
+                    file_path = os.path.join(directory_path, file)
+                    if os.path.isfile(file_path):
+                        image_files.append(file_path)
+        
+        image_files.sort()
+
+        if not image_files:
+            print(f"Warning: No images found in -> {directory_path}")
+            return (empty_img, empty_mask, 0)
+
+        output_images = []
+        output_masks = []
+        loaded_count = 0
+
+        for full_path in image_files:
+            if image_load_cap > 0 and loaded_count >= image_load_cap:
+                break
+
+            try:
+                i = Image.open(full_path)
+                i = ImageOps.exif_transpose(i)
+
+                if i.mode == 'I':
+                    i = i.point(lambda p: p * (1 / 255))
+                image = i.convert("RGB")
+
+                # 直接转换为 Tensor，不再关心尺寸是否一致
+                image_np = np.array(image).astype(np.float32) / 255.0
+                image_tensor = torch.from_numpy(image_np)[None,]
+
+                if 'A' in i.getbands():
+                    mask_np = np.array(i.getchannel('A')).astype(np.float32) / 255.0
+                    mask_tensor = 1. - torch.from_numpy(mask_np)
+                else:
+                    mask_tensor = torch.zeros((image.size[1], image.size[0]), dtype=torch.float32, device="cpu")
+
+                output_images.append(image_tensor)
+                output_masks.append(mask_tensor.unsqueeze(0))
+                loaded_count += 1
+
+            except Exception as e:
+                print(f"Failed to load image {full_path}: {e}")
+
+        if not output_images:
+            return (empty_img, empty_mask, 0)
+
+        # 【直接返回列表】，不再使用 torch.cat 合并
+        return (output_images, output_masks, loaded_count)
+
+    @classmethod
+    def IS_CHANGED(s, directory_path, image_load_cap, recursive):
+        directory_path = directory_path.strip().strip('"').strip("'")
+        if os.path.exists(directory_path) and os.path.isdir(directory_path):
+            return os.path.getmtime(directory_path)
+        return float("NaN")
+
+# ============================================================================
 # 节点映射注册
 # ============================================================================
 NODE_CLASS_MAPPINGS = {
@@ -426,6 +530,7 @@ NODE_CLASS_MAPPINGS = {
     "LoadImageWithSubfolders": LoadImageWithSubfolders,
     "LoadImageUnified": LoadImageUnified,
     "load_image_by_path": load_image_by_path,
+    "LoadAllImagesFromPathAsList": LoadAllImagesFromPathAsList,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -433,4 +538,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "LoadImageWithSubfolders": "Load Image (Subfolders) 📂",
     "LoadImageUnified": "Load Image (image_folder) 🗄️",
     "load_image_by_path": "load image by path 🔗📁",
+    "LoadAllImagesFromPathAsList": "Load All Images From Path 📜",
 }

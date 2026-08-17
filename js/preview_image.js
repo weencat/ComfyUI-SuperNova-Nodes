@@ -25,6 +25,37 @@ style.innerHTML = `
 `;
 document.head.appendChild(style);
 
+// --- 核心修复：修复 ComfyUI Node 2.0 双预览图问题 ---
+// Node 2.0 会为包含 image_upload 的节点自动创建一个原生的预览，
+// 但它无法正确解析带有 'output/', 'temp/' 等前缀的自定义合并路径，导致加载失败并显示一个损坏的图像图标。
+// 这里通过全局捕获这些已知的错误请求并隐式将其隐藏，来保持界面只保留我们自己的正常预览。
+if (!window._supernova_img_error_handler) {
+    window.addEventListener('error', function(e) {
+        if (e.target && e.target.tagName === 'IMG') {
+            const src = e.target.src;
+            if (src && src.includes('/view?')) {
+                try {
+                    const url = new URL(src, window.location.origin);
+                    const filename = url.searchParams.get('filename');
+                    const type = url.searchParams.get('type') || 'input';
+                    
+                    // 如果原生系统错误地用 type=input 强行加载带有前缀的相对路径
+                    if (filename && type === 'input') {
+                        if (filename.startsWith('output/') || 
+                            filename.startsWith('temp/') || 
+                            filename.startsWith('clipspace/') ||
+                            filename.startsWith('input/')) {
+                            // 隐藏加载失败的内置原图
+                            e.target.style.display = 'none';
+                        }
+                    }
+                } catch (err) {}
+            }
+        }
+    }, true); // 必须设置为 true 以在捕获阶段拦截错误（IMG error事件不会冒泡）
+    window._supernova_img_error_handler = true;
+}
+
 app.registerExtension({
     name: "supernova.PreviewImage",
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
@@ -113,6 +144,15 @@ app.registerExtension({
                         const cb = imageWidget.callback;
                         imageWidget.callback = (value) => {
                             if (cb) cb.call(imageWidget, value);
+                            
+                            // --- 核心修复：防止 V1/V2 引擎根据下拉值渲染出多余的原生缩略图 ---
+                            // 延时清除原生系统的内置预览池
+                            setTimeout(() => {
+                                if (node.imgs) {
+                                    node.imgs = undefined;
+                                }
+                            }, 10);
+                            
                             if (value) {
                                 let type = "input";
                                 let filename = value;

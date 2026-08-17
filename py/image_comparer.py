@@ -8,14 +8,17 @@ from aiohttp import web
 from server import PromptServer
 import nodes
 from nodes import PreviewImage
+import comfy.model_management
 
 # ==============================================================================
 # 1. 全局配置与资源挂载
 # ==============================================================================
 
 # 全局状态存储
-PAUSE_STATE = {}
+if "PAUSE_STATE" not in globals():
+    PAUSE_STATE = {}
 SELECTION_STATE = {}
+
 
 # 挂载音频目录 (用于前端提示音)
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -113,6 +116,11 @@ class PreviewAndPause:
     FUNCTION = "run"
     CATEGORY = "🪐supernova/Image"
     OUTPUT_NODE = True
+
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        # 强制每次运行都触发，防止被 ComfyUI 缓存跳过
+        return float("nan")
     
     def run(self, images, unique_id, prompt=None, extra_pnginfo=None):
         node_id = str(unique_id)
@@ -127,19 +135,32 @@ class PreviewAndPause:
         # 重置状态为等待
         PAUSE_STATE[node_id] = "waiting"
         
-        # 发送前端消息
+        # 1. 推送自定义前端消息（兼容你原有的 1.0 自定义 JS 脚本）
         PromptServer.instance.send_sync("supernova_preview_data", {
             "node_id": node_id,
             "images": ui_images
         })
 
-        # 阻塞循环
+        # 2. 推送官方原生 executed 消息（兼容 2.0 新前端组件和 1.0 原生画布预览）
+        PromptServer.instance.send_sync("executed", {
+            "node": node_id,
+            "output": {"images": ui_images}
+        })
+
+        # 阻塞等待循环
         while True:
+            # 兼容：如果用户点击了 ComfyUI 原生的停止/取消队列按钮，及时退出循环
+            if comfy.model_management.processing_interrupted():
+                PAUSE_STATE.pop(node_id, None)
+                comfy.model_management.interrupt_current_processing()
+                raise Exception("Workflow interrupted by ComfyUI.")
+
             status = PAUSE_STATE.get(node_id, "waiting")
             if status == "continue": 
                 break
             elif status == "stop": 
                 PAUSE_STATE.pop(node_id, None)
+                comfy.model_management.interrupt_current_processing()
                 raise Exception("Workflow stopped by user.")
             time.sleep(0.1)
         
