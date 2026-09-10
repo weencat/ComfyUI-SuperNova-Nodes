@@ -5,20 +5,6 @@ import { api } from "../../scripts/api.js";
 // 1. 通用工具函数 (Helpers)
 // ============================================================
 
-const soundUrl = "../audio/sound.mp3";
-const notificationSound = new Audio(soundUrl);
-
-// 播放节点就绪提示音
-function playSound() {
-    try {
-        notificationSound.currentTime = 0;
-        notificationSound.volume = 0.5;
-        notificationSound.play().catch(() => { });
-    } catch (e) {
-        console.error("[Supernova] Audio error:", e);
-    }
-}
-
 // 构建图片访问 URL
 function getImageUrl(data) {
     if (!data) return null;
@@ -544,7 +530,15 @@ app.registerExtension({
         // 全局事件监听：处理 Preview & Pause 的实时图片推送
         api.addEventListener("supernova_preview_data", ({ detail }) => {
             const node = app.graph.getNodeById(detail.node_id);
-            if (node) { playSound(); if (detail.images?.length > 0) loadPreviewImageToNode(node, detail.images[0]); }
+            if (node) { 
+                // 1. 安全调用设置面板里的提示音播放
+                window.playSupernovaSound?.(); 
+
+                // 2. 加载并更新图片预览
+                if (detail.images?.length > 0) {
+                    loadPreviewImageToNode(node, detail.images[0]); 
+                }
+            }
         });
 
         // 全局事件监听：处理 Compare & Select 的图片推送

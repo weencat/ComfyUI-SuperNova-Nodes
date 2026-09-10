@@ -29,7 +29,7 @@ class LoraLoaderWithPathStack:
     
     RETURN_TYPES = ("MODEL", "CLIP")
     FUNCTION = "load_lora_stack"
-    CATEGORY = "🪐supernova/LoRALoader"
+    CATEGORY = "🪐 Superova/LoRALoader"
 
     def load_lora_stack(self, model, clip, lora_path, strength_model, strength_clip):
         

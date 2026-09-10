@@ -150,7 +150,7 @@ class SimpleVideoSaver:
     RETURN_TYPES = ()
     FUNCTION = "save_video"
     OUTPUT_NODE = True
-    CATEGORY = "🪐supernova/video"
+    CATEGORY = "🪐 Superova/video"
 
     def save_video(self, image, frame_rate, filename_prefix, format, quality, audio=None, sound_file="sound.mp3", volume=1.0):
         # 1. 替换时间戳占位符
@@ -309,7 +309,7 @@ class SimpleLoadVideoPath:
     RETURN_TYPES = ("IMAGE", "FLOAT", "FLOAT", "INT", "INT", "AUDIO")
     RETURN_NAMES = ("image", "frame_count", "fps", "width", "height", "audio")
     FUNCTION = "load_video"
-    CATEGORY = "🪐supernova/video"
+    CATEGORY = "🪐 Superova/video"
 
     def load_video(self, video_path, frame_load_cap, skip_first_frames, select_every_nth, select_frame_index):
         video_path = video_path.strip('"')

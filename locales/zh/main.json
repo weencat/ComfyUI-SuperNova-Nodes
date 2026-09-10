@@ -1,13 +1,17 @@
 {
   "nodeCategories": {
-    "🪐supernova":"🪐超新星",
-    "ImageLoader":"图像读取器",
-    "ImageSaver":"图像保存器",
-    "LoRALoader":"LoRA加载器",
-    "Switches":"多路交换机",
-    "XY Plot":"XY图表",
+    "🪐 Superova": "🪐超新星",
+    "ImageLoader": "图像读取器",
+    "ImageSaver": "图像保存器",
+    "LoRALoader": "LoRA加载器",
+    "Switches": "多路交换机",
+    "XY Plot": "XY图表",
     "ImageMetadata": "图像元数据",
     "MetadataSeries": "元数据系列",
-    "setting": "设置"
+    "settings": "设置",
+    "KSampIer Inputs": "K采样输入",
+    "LoRA Inputs": "LoRA输入",
+    "Prompt Inputs": "提示词输入",
+    "Model Inputs": "模型输入"
   }
 }

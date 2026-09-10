@@ -1,4 +1,4 @@
-# 文件: 🪐supernova/__init__.py (已升级为支持子目录扫描的最终版)
+# 文件: 🪐 Superova/__init__.py (已升级为支持子目录扫描的最终版)
 
 import os
 import sys
@@ -73,7 +73,7 @@ for root, dirs, files in os.walk(PY_FOLDER):
     for filename in files:
         if filename.endswith(".py") and not filename.startswith("__"):
             # 构造模块的 Python 导入路径
-            # 例如: .../🪐supernova/py/utils/helpers.py -> .py.utils.helpers
+            # 例如: .../🪐 Superova/py/utils/helpers.py -> .py.utils.helpers
             relative_path = os.path.relpath(root, NODE_ROOT)
             module_name_path = os.path.join(relative_path, filename[:-3]).replace(os.sep, '.')
             

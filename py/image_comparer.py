@@ -114,7 +114,7 @@ class PreviewAndPause:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("IMAGE",)
     FUNCTION = "run"
-    CATEGORY = "🪐supernova/Image"
+    CATEGORY = "🪐 Superova/Image"
     OUTPUT_NODE = True
 
     @classmethod
@@ -195,7 +195,7 @@ class MultiImageComparer:
 
     RETURN_TYPES = ()
     OUTPUT_NODE = True
-    CATEGORY = "🪐supernova/Image"
+    CATEGORY = "🪐 Superova/Image"
     FUNCTION = "compare_images"
 
     def compare_images(self, image_1=None, image_2=None, image_3=None, image_4=None, 
@@ -244,7 +244,7 @@ class ImageCompareAndSelect:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("Selected Image",)
     FUNCTION = "run"
-    CATEGORY = "🪐supernova/Image"
+    CATEGORY = "🪐 Superova/Image"
     OUTPUT_NODE = True
 
     # 2. 这里参数名也要从 seed 改为 compare_id
@@ -297,7 +297,7 @@ class ImageAddText:
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "add_text"
-    CATEGORY = "🪐supernova/Image"
+    CATEGORY = "🪐 Superova/Image"
 
     def add_text(self, image, text, direction, font_path, font_size, text_color, bg_color, bg_mode):
         if not font_path.strip():

@@ -2,7 +2,7 @@
 
 import { api } from "../../../scripts/api.js";
 import { app } from "../../../scripts/app.js";
-
+import { playSupernovaSound } from "./setting.js";  
 app.registerExtension({
 	name: "MySoundNode.PlaySound",
 	setup() {

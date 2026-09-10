@@ -38,6 +38,33 @@ async def select_node(request):
     except Exception as e:
         return web.json_response({"status": "error", "message": str(e)})
 
+# ============================================================================
+# 专门用于读取本地任意路径音频的代理接口
+# ============================================================================
+@PromptServer.instance.routes.get("/supernova/audio_stream")
+async def stream_custom_audio(request):
+    audio_path = request.query.get("path", "")
+    if not audio_path:
+        return web.Response(status=400, text="No path provided")
+        
+    # 1. 尝试判断是否是绝对路径且存在 (如 D:\music\1.mp3 或 /usr/sounds/1.wav)
+    if os.path.isabs(audio_path) and os.path.exists(audio_path):
+        return web.FileResponse(audio_path)
+        
+    # 2. 尝试作为相对路径，去插件自带的 audio 目录找
+    ext_audio_path = os.path.join(audio_dir, audio_path)
+    if os.path.exists(ext_audio_path):
+        return web.FileResponse(ext_audio_path)
+        
+    # 3. 尝试去 ComfyUI 根目录找
+    base_path = os.path.abspath(audio_path)
+    if os.path.exists(base_path):
+        return web.FileResponse(base_path)
+        
+    # 都没找到，报错打印
+    print(f"[Supernova] ⚠️ Audio file not found: {audio_path}")
+    return web.Response(status=404, text="Audio file not found")
+
 # --- 辅助类 ---
 class FlexibleOptionalInputType(dict):
     def __init__(self, type_name, input_dict):
@@ -76,7 +103,7 @@ class PauseAndSelectOutput:
     RETURN_TYPES = (ANY, ANY)
     RETURN_NAMES = ("Output 1", "Output 2")
     FUNCTION = "run"
-    CATEGORY = "🪐supernova/Flow"
+    CATEGORY = "🪐 Superova/Flow"
     def run(self, input_any, seed, unique_id):
         decision = wait_for_decision(unique_id, seed, "Switcher")
         blocker = ExecutionBlocker(None) if ExecutionBlocker else None
@@ -94,7 +121,7 @@ class PauseAndSelectInput:
     RETURN_TYPES = (ANY,)
     RETURN_NAMES = ("Selected Output",)
     FUNCTION = "run"
-    CATEGORY = "🪐supernova/Flow"
+    CATEGORY = "🪐 Superova/Flow"
     def run(self, input_1, input_2, seed, unique_id):
         decision = wait_for_decision(unique_id, seed, "Selector")
         if decision == "1": return (input_1,)
@@ -111,7 +138,7 @@ class PauseAndMatrix:
     RETURN_TYPES = (ANY, ANY)
     RETURN_NAMES = ("Output 1", "Output 2")
     FUNCTION = "run"
-    CATEGORY = "🪐supernova/Flow"
+    CATEGORY = "🪐 Superova/Flow"
     def run(self, input_1, input_2, seed, unique_id):
         decision = wait_for_decision(unique_id, seed, "Matrix")
         blocker = ExecutionBlocker(None) if ExecutionBlocker else None
@@ -141,7 +168,7 @@ class MultiInputSelector:
     RETURN_TYPES = (ANY,)
     RETURN_NAMES = ("Selected Output",)
     FUNCTION = "run"
-    CATEGORY = "🪐supernova/Flow"
+    CATEGORY = "🪐 Superova/Flow"
 
     def run(self, seed, unique_id=None, **kwargs):
         decision = wait_for_decision(unique_id, seed, "MultiInput")
@@ -165,7 +192,7 @@ class MultiOutputSplitter:
     RETURN_TYPES = (ANY,) * 5
     RETURN_NAMES = tuple(f"Output {i+1}" for i in range(5))
     FUNCTION = "run"
-    CATEGORY = "🪐supernova/Flow"
+    CATEGORY = "🪐 Superova/Flow"
 
     def run(self, input_data, seed, unique_id=None):
         decision = wait_for_decision(unique_id, seed, "MultiOutput")
@@ -179,6 +206,57 @@ class MultiOutputSplitter:
         except: pass
         return tuple(outputs)
 
+# ==============================================================================
+# 6. Play Sound Alert (节点经过时播放音效)
+# ==============================================================================
+class PlaySoundAlert:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "any_input": (ANY,),
+                # 改为布尔开关
+                "use_custom_path": ("BOOLEAN", {"default": False, "label_on": "Custom Path", "label_off": "Settings Sound"}),
+                "audio_path": ("STRING", {"default": "1.mp3"}),
+            },
+            "hidden": {"unique_id": "UNIQUE_ID"}
+        }
+    RETURN_TYPES = (ANY,)
+    RETURN_NAMES = ("Output",)
+    FUNCTION = "run"
+    CATEGORY = "🪐 Superova/Flow"
+
+    def _clean_path(self, raw_path):
+        """鲁棒性清理：去除两端引号、处理带有 path: 的字符串等"""
+        if not isinstance(raw_path, str):
+            return ""
+        p = raw_path.strip()
+        # 1. 去除包裹的引号 " 或 '
+        if p.startswith('"') and p.endswith('"'): p = p[1:-1].strip()
+        if p.startswith("'") and p.endswith("'"): p = p[1:-1].strip()
+        
+        # 2. 如果前缀是 path: (不区分大小写)
+        if p.lower().startswith("path:"):
+            p = p[5:].strip() # 截断前5个字符
+            # 再次去引号 (防止诸如 path:"1.mp3" 的情况)
+            if p.startswith('"') and p.endswith('"'): p = p[1:-1].strip()
+            if p.startswith("'") and p.endswith("'"): p = p[1:-1].strip()
+            
+        return p
+
+    def run(self, any_input, use_custom_path, audio_path, unique_id):
+        # 提取并清理最终路径
+        final_path = self._clean_path(audio_path)
+        
+        # 向前端发送播放指令 (支持各种原生浏览器音频扩展名: mp3, wav, ogg 等)
+        PromptServer.instance.send_sync("supernova_play_sound_node", {
+            "node_id": str(unique_id),
+            "use_custom_path": use_custom_path,
+            "audio_path": final_path
+        })
+        # 原样返回数据
+        return (any_input,)
+
 # --- 映射 ---
 NODE_CLASS_MAPPINGS = {
     "PauseAndSelectOutput": PauseAndSelectOutput,
@@ -186,6 +264,7 @@ NODE_CLASS_MAPPINGS = {
     "PauseAndMatrix": PauseAndMatrix,
     "MultiInputSelector": MultiInputSelector,
     "MultiOutputSplitter": MultiOutputSplitter,
+    "PlaySoundAlert": PlaySoundAlert
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -194,4 +273,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "PauseAndMatrix": "Matrix 🔀",
     "MultiInputSelector": "Multi Selector 🔢",
     "MultiOutputSplitter": "Multi Splitter 🔢",
+    "PlaySoundAlert": "Play Sound 🎵"
 }

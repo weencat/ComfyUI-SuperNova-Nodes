@@ -296,12 +296,12 @@
                 "name": "采样器名称"
             },
             "previous_list": {
-                "name": "采样器列表"
+                "name": "采样器串联列表"
             }
         },
         "outputs": {
             "0": {
-                "name": "采样器列表"
+                "name": "采样器串联列表"
             },
             "1": {
                 "name": "X或Y"
@@ -315,12 +315,12 @@
                 "name": "调度器名称"
             },
             "previous_list": {
-                "name": "调度器列表"
+                "name": "调度器串联列表"
             }
         },
         "outputs": {
             "0": {
-                "name": "调度器列表"
+                "name": "调度器串联列表"
             },
             "1": {
                 "name": "X或Y"
@@ -340,12 +340,12 @@
                 "name": "调度器名称"
             },
             "previous_list": {
-                "name": "合并列表"
+                "name": "合并串联列表"
             }
         },
         "outputs": {
             "0": {
-                "name": "合并列表"
+                "name": "合并串联列表"
             },
             "1": {
                 "name": "X或Y"
@@ -561,7 +561,7 @@
         "display_name": "XY输入: 提示词搜索/替换 串联🔗⚙️",
         "inputs": {
             "prompt_s_r_list": {
-                "name": "提示词S/R列表"
+                "name": "提示词S/R串联列表"
             },
             "search_txt": {
                 "name": "搜索文本"
@@ -572,7 +572,7 @@
         },
         "outputs": {
             "0": {
-                "name": "提示词S/R列表"
+                "name": "提示词S/R串联列表"
             }
         }
     },
@@ -580,7 +580,7 @@
         "display_name": "XY输入: Checkpoint模型 串联🔗⚙️",
         "inputs": {
             "ckpt_list": {
-                "name": "模型列表"
+                "name": "模型串联列表"
             },
             "ckpt_name": {
                 "name": "模型名称"
@@ -588,7 +588,7 @@
         },
         "outputs": {
             "0": {
-                "name": "模型列表"
+                "name": "模型串联列表"
             }
         }
     },
@@ -596,7 +596,7 @@
         "display_name": "XY输入: VAE 串联🔗⚙️",
         "inputs": {
             "vae_s_list": {
-                "name": "VAE列表"
+                "name": "VAE串联列表"
             },
             "vae_name": {
                 "name": "VAE名称"
@@ -604,7 +604,7 @@
         },
         "outputs": {
             "0": {
-                "name": "VAE列表"
+                "name": "VAE串联列表"
             }
         }
     },
@@ -612,7 +612,7 @@
         "display_name": "XY输入: 降噪值 串联🔗⚙️",
         "inputs": {
             "denoise_s_list": {
-                "name": "降噪列表"
+                "name": "降噪串联列表"
             },
             "denoise_value": {
                 "name": "降噪值"
@@ -620,7 +620,7 @@
         },
         "outputs": {
             "0": {
-                "name": "降噪列表"
+                "name": "降噪串联列表"
             }
         }
     },
@@ -1653,6 +1653,74 @@
             },
             "2": {
                 "name": "计数"
+            }
+        }
+    },
+    "XY_Input_UNet_Chain": {
+        "display_name": "XY输入: UNet 串联🔗⚙️",
+        "inputs": {
+            "unet_list": {
+                "name": "UNet串联列表"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "UNet串联列表"
+            }
+        }
+    },
+    "XY_Input_UNet_Batch": {
+        "display_name": "XY输入: UNet 批次🗒️⚙️"
+    },
+    "XY_Input_CLIP_Chain": {
+        "display_name": "XY输入: CLIP 串联🔗⚙️",
+        "inputs": {
+            "clip_list": {
+                "name": "CLIP串联列表"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "CLIP串联列表"
+            }
+        }
+    },
+    "XY_Input_CLIP_Batch": {
+        "display_name": "XY输入: CLIP 批次🗒️⚙️"
+    },
+    "XY_Input_Dynamic_List_Builder": {
+        "display_name": "XY输入: 动态 采样器/调度器 列表构建器 ⚙️"
+    },
+    "XY_Input_LoRA_Path_Chain": {
+        "display_name": "XY Input: LoRA (Path) Chain🔗⚙️",
+        "inputs": {
+            "lora_chain_list": {
+                "name": "CLIP串联列表"
+            }
+        },
+        "outputs": {
+            "0": {
+                "name": "CLIP串联列表"
+            }
+        }
+    },
+    "PlaySoundAlert": {
+        "display_name": "音效播放🎵",
+        "inputs": {
+            "any_input": {
+                "name": "任何输入"
+            },
+            "use_custom_path": {
+                "name": "使用自定义路径"
+            },
+            "Settings Sound": {
+                "name": "统一音效"
+            },
+            "Custom Path": {
+                "name": "自定义路径路径"
+            },
+            "Test Sound": {
+                "name": "▶️测试音效"
             }
         }
     },

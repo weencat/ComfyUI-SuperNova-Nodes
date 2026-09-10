@@ -51,7 +51,7 @@ class AnyMultiSwitchScalable:
     # 返回类型也必须是 '*'，以确保它可以将数据传递给任何后续节点。
     RETURN_TYPES = (any_type,)
     RETURN_NAMES = ("output",)
-    CATEGORY = "🪐supernova/Switches"
+    CATEGORY = "🪐 Superova/Switches"
     FUNCTION = "switch"
 
     def switch(self, **kwargs):
@@ -87,7 +87,7 @@ class AnyRerouteAdapter5:
     RETURN_TYPES = ("*", "*", "*", "*", "*")
     RETURN_NAMES = ("out_1", "out_2", "out_3", "out_4", "out_5")
     FUNCTION = "forward"
-    CATEGORY = "🪐supernova/Switches"
+    CATEGORY = "🪐 Superova/Switches"
 
     def forward(self, **kwargs):
         return (
@@ -120,7 +120,7 @@ class AnyBooleanSwitch:
     RETURN_TYPES = (any_type,)
     RETURN_NAMES = ("output",)
     FUNCTION = "switch"
-    CATEGORY = "🪐supernova/Switches"
+    CATEGORY = "🪐 Superova/Switches"
 
     # 添加默认值 =None，防止没连线时 Python 报错
     def switch(self, boolean, input_false=None, input_true=None):

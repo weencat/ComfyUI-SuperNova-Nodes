@@ -50,7 +50,7 @@ class SaveImageToInput:
     RETURN_TYPES = ()
     FUNCTION = "save_images"
     OUTPUT_NODE = True
-    CATEGORY = "🪐supernova/ImageSaver"
+    CATEGORY = "🪐 Superova/ImageSaver"
 
     def save_images(self, images, filename_prefix="{date}", save_to_reload=False, prompt=None, extra_pnginfo=None):
         # 1. 确定保存路径
@@ -123,34 +123,50 @@ class SaveImageWithSound(SaveImage):
         if "filename_prefix" in types["required"]:
             types["required"]["filename_prefix"][1]["default"] = "Comfy_{date}"
             types["required"]["filename_prefix"][1]["tooltip"] = "支持 {date}, {time}, {datetime} 占位符"
-        
-        types["optional"] = {
-            "sound_file": ("STRING", {"default": "sound.mp3"}),
-            "volume": ("FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.01}),
-        }
+
+        # 添加可选的输入接入口
+        if "optional" not in types:
+            types["optional"] = {}
+            
+        # 增加 Prompt 和 Negative Prompt 的接入口
+        types["optional"]["positive_prompt"] = ("STRING", {"default": "", "multiline": True, "forceInput": True})
+        types["optional"]["negative_prompt"] = ("STRING", {"default": "", "multiline": True, "forceInput": True})
+
         return types
 
-    def save_images(self, images, filename_prefix="ComfyUI", prompt=None, extra_pnginfo=None, sound_file="sound.mp3", volume=0.8):
-        
-        # ==========================================
-        # 1. 【共用逻辑】调用公共函数处理文件名
-        # ==========================================
+    def save_images(self, images, filename_prefix="ComfyUI", prompt=None, extra_pnginfo=None, positive_prompt="", negative_prompt=""):
+        # 1. 格式化前缀 (假设该函数在外部已定义)
         formatted_prefix = apply_filename_formatting(filename_prefix)
         
-        # 2. 调用父类方法 (这正是您要求的)
-        # 父类会自动处理保存到 output 文件夹的逻辑
+        # 2. 注入提示词到图像元数据 (extra_pnginfo)
+        if extra_pnginfo is None:
+            extra_pnginfo = {}
+        else:
+            extra_pnginfo = extra_pnginfo.copy()
+            
+        # 按照需求，将正负提示词组合成列表格式的 JSON 结构
+        # 如果未接入或者为空，则填入空字符串 [""]，表示空值
+        custom_prompts = {
+            "Positive_Prompt": [positive_prompt] if positive_prompt else [""],
+            "Negative_Prompt": [negative_prompt] if negative_prompt else [""]
+        }
+        
+        # 将组合好的字典作为一个整体存入，键名可以自定义，这里用 "Custom_Prompts"
+        # ComfyUI 最终会自动把它序列化为: {"Positive_Prompt": ["你的正向词"], "Negative_Prompt": ["你的反向词"]}
+        extra_pnginfo["Custom_Prompts"] = custom_prompts
+            
+        # 3. 调用父类方法保存图片
         results = super().save_images(images, formatted_prefix, prompt, extra_pnginfo)
 
-        # 3. 播放声音
+        # 4. 仅发送一个触发信号
         try:
-            PromptServer.instance.send_sync("play_sound_on_save", { "sound_file": sound_file, "volume": volume })
+            PromptServer.instance.send_sync("supernova_save_image_done", {})
         except Exception as e:
-            print(f"SaveImageWithSound 错误: 无法发送播放声音的信号。 {e}")
+            print(f"[SaveImageWithSound] 错误: 无法发送播放声音的信号: {e}")
 
         return results
 
-    CATEGORY = "🪐supernova/ImageSaver"
-
+    CATEGORY = "🪐 Superova/ImageSaver"
 
 # ============================================================================
 # 节点注册

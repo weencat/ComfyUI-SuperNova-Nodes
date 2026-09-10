@@ -32,7 +32,7 @@ any_type = AnyType("*")
 class KSamplerSettings:
     
     # 定义节点在 ComfyUI 右键菜单中的分类路径
-    CATEGORY = "🪐supernova/settings"
+    CATEGORY = "🪐 Superova/settings"
 
     # 定义节点的输出类型
     # 【关键修改】：sampler_name 和 scheduler 使用 any_type
@@ -95,7 +95,7 @@ class KSamplerSettings:
 # ==============================================================================
 class IntAndFloatHub:
     
-    CATEGORY = "🪐supernova/settings"  # 分类
+    CATEGORY = "🪐 Superova/settings"  # 分类
     RETURN_TYPES = ("INT", "FLOAT",)  # 输出类型：一个整数，一个浮点
     RETURN_NAMES = ("INT", "float",)  # 输出名称
     FUNCTION = "get_numbers"          # 执行函数
@@ -132,7 +132,7 @@ class IntAndFloatHub:
 # ==============================================================================
 class SamplerSchedulerHubv2:
     
-    CATEGORY = "🪐supernova/settings"
+    CATEGORY = "🪐 Superova/settings"
     
     # 【关键修改】：同样使用 any_type，确保能连上 KSampler
     RETURN_TYPES = (any_type, any_type,)
@@ -178,7 +178,7 @@ class SeedHub:
     RETURN_TYPES = ("INT",)
     RETURN_NAMES = ("seed",)
     FUNCTION = "execute"
-    CATEGORY = "🪐supernova/settings"
+    CATEGORY = "🪐 Superova/settings"
 
     @classmethod
     def IS_CHANGED(cls, seed):
@@ -217,7 +217,7 @@ class VisualLatentNode:
     RETURN_TYPES = ("LATENT", "INT", "INT", "INT")
     RETURN_NAMES = ("latent", "width", "height", "batch_size")
     FUNCTION = "generate"
-    CATEGORY = "🪐supernova/settings"
+    CATEGORY = "🪐 Superova/settings"
 
     def generate(self, width, height, batch_size, pixel_alignment):
         # 如果开启对齐，将宽高强制调整为 8 的倍数

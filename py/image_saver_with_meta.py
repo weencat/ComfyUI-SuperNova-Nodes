@@ -82,7 +82,7 @@ class ReadPngInfoFromImage:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("metadata_json",)
     FUNCTION = "extract"
-    CATEGORY = "🪐supernova/ImageMetadata"
+    CATEGORY = "🪐 Superova/ImageMetadata"
 
     def extract(self, image, prompt=None, extra_pnginfo=None, **kwargs):
         is_valid_image_input = image is not None and isinstance(image, torch.Tensor) and image.numel() > 0
@@ -146,7 +146,7 @@ class ReadMetaFromFilePillow:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("metadata_json",)
     FUNCTION = "extract_from_path"
-    CATEGORY = "🪐supernova/ImageMetadata"
+    CATEGORY = "🪐 Superova/ImageMetadata"
     
     def extract_from_path(self, image_path):
         full_path = image_path.strip()
@@ -181,20 +181,20 @@ class ImageMetadataSettings:
                 "height": ("INT", {"default": 512, "step": 8}),
             }, "optional": { "time_format": ("STRING", {"default": "%Y-%m-%d-%H%M%S"}), }
         }
-    RETURN_TYPES = ("METADATA",); FUNCTION = "package_settings"; CATEGORY = "🪐supernova/ImageMetadata"
+    RETURN_TYPES = ("METADATA",); FUNCTION = "package_settings"; CATEGORY = "🪐 Superova/ImageMetadata"
     def package_settings(self, **kwargs): return (kwargs,)
 
 class MetadataFilenameSettings:
     @classmethod
     def INPUT_TYPES(s): return { "required": { "filename": ("STRING", {"default": '%time_%basemodelname_%seed', "tooltip":"Original time format: {date} is year-month-day, {time} is hour-minute-second, {datetime} is year-month-day_hour-minute-second.\nFormat used when accessing metadata settings\n%date: year-month-day (%Y-%m-%d)\n%time: hour-minute-second (%H%M%S)\n%model: model name\n%width: width\n%height: height\n%seed: number of random seeds\n%sampler_name: sampler name\n%steps: number of steps\n%cfg: number of CFGs\n%scheduler_name: scheduler name\n%basemodelname: base model name"}), "time_format": ("STRING", {"default": "%Y-%m-%d-%H%M%S"}), }, "optional": {"METADATA": ("METADATA",)} }
-    RETURN_TYPES = ("METADATA",); FUNCTION = "Metadata"; CATEGORY = "🪐supernova/ImageMetadata/MetadataSeries"
+    RETURN_TYPES = ("METADATA",); FUNCTION = "Metadata"; CATEGORY = "🪐 Superova/ImageMetadata/MetadataSeries"
     def Metadata(self, filename, time_format, METADATA=None):
         package = (METADATA or {}).copy(); package.update({"filename": filename, "time_format": time_format}); return (package,)
 
 class MetadataPromptsSettings:
     @classmethod
     def INPUT_TYPES(s): return { "required": { "positive": ("STRING", {"default": "positive_text", "multiline": True}), "negative": ("STRING", {"default": "negative_text", "multiline": True}), }, "optional": {"METADATA": ("METADATA",)} }
-    RETURN_TYPES = ("METADATA",); FUNCTION = "Metadata"; CATEGORY = "🪐supernova/ImageMetadata/MetadataSeries"
+    RETURN_TYPES = ("METADATA",); FUNCTION = "Metadata"; CATEGORY = "🪐 Superova/ImageMetadata/MetadataSeries"
     def Metadata(self, positive, negative, METADATA=None):
         package = (METADATA or {}).copy(); package.update({"positive": positive, "negative": negative}); return (package,)
 
@@ -202,21 +202,21 @@ class MetadataSamplingSettings:
     @classmethod
     def INPUT_TYPES(s):
         return { "required": { "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}), "steps": ("INT", {"default": 20}), "cfg": ("FLOAT", {"default": 7.0}), "sampler_name": (comfy.samplers.KSampler.SAMPLERS, ), "scheduler_name": (comfy.samplers.KSampler.SCHEDULERS, ), }, "optional": {"METADATA": ("METADATA",)} }
-    RETURN_TYPES = ("METADATA",); FUNCTION = "Metadata"; CATEGORY = "🪐supernova/ImageMetadata/MetadataSeries"
+    RETURN_TYPES = ("METADATA",); FUNCTION = "Metadata"; CATEGORY = "🪐 Superova/ImageMetadata/MetadataSeries"
     def Metadata(self, seed, steps, cfg, sampler_name, scheduler_name, METADATA=None):
         package = (METADATA or {}).copy(); package.update({ "seed_value": seed, "steps": steps, "cfg": cfg, "sampler_name": sampler_name, "scheduler_name": scheduler_name }); return (package,)
 
 class MetadataDimensionsSettings:
     @classmethod
     def INPUT_TYPES(s): return { "required": { "width": ("INT", {"default": 512, "step": 8}), "height": ("INT", {"default": 512, "step": 8}), }, "optional": {"METADATA": ("METADATA",)} }
-    RETURN_TYPES = ("METADATA",); FUNCTION = "Metadata"; CATEGORY = "🪐supernova/ImageMetadata/MetadataSeries"
+    RETURN_TYPES = ("METADATA",); FUNCTION = "Metadata"; CATEGORY = "🪐 Superova/ImageMetadata/MetadataSeries"
     def Metadata(self, width, height, METADATA=None):
         package = (METADATA or {}).copy(); package.update({"width": width, "height": height}); return (package,)
 
 class CombineMetadata:
     @classmethod
     def INPUT_TYPES(s): return { "optional": { "METADATA_a": ("METADATA",), "METADATA_b": ("METADATA",), "METADATA_c": ("METADATA",), "METADATA_d": ("METADATA",), }}
-    RETURN_TYPES = ("METADATA",); FUNCTION = "combine"; CATEGORY = "🪐supernova/ImageMetadata/MetadataSeries"
+    RETURN_TYPES = ("METADATA",); FUNCTION = "combine"; CATEGORY = "🪐 Superova/ImageMetadata/MetadataSeries"
     def combine(self, **kwargs):
         combined = {}; [combined.update(p) for k, p in kwargs.items() if p]; return (combined,)
 
@@ -230,7 +230,7 @@ class SaveImageWithSoundAndMetadata(nodes.SaveImage):
     def INPUT_TYPES(s):
         types = super().INPUT_TYPES(); types["optional"] = { "METADATA": ("METADATA",), "sound_file": ("STRING", {"default": "sound.mp3"}), "volume": ("FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.01}), }; types["required"]["filename_prefix"][1].update({"default": "ComfyUI_{date}", "tooltip":"Original time format: {date} is year-month-day, {time} is hour-minute-second, {datetime} is year-month-day_hour-minute-second.\nFormat used when accessing metadata settings\n%date: year-month-day (%Y-%m-%d)\n%time: hour-minute-second (%H%M%S)\n%model: model name\n%width: width\n%height: height\n%seed: number of random seeds\n%sampler_name: sampler name\n%steps: number of steps\n%cfg: number of CFGs\n%scheduler_name: scheduler name\n%basemodelname: base model name"}); return types
     
-    FUNCTION = "save_images"; CATEGORY = "🪐supernova/ImageMetadata"
+    FUNCTION = "save_images"; CATEGORY = "🪐 Superova/ImageMetadata"
     
     def save_images(self, images, filename_prefix="ComfyUI_{date}", prompt=None, extra_pnginfo=None, METADATA=None, sound_file="sound.mp3", volume=0.8):
         final_filename = filename_prefix

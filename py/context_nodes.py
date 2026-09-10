@@ -54,7 +54,7 @@ class ContextCreateBase:
     RETURN_TYPES = ("CONTEXT", "MODEL", "CLIP", "VAE", "CONDITIONING", "CONDITIONING", "LATENT")
     RETURN_NAMES = ("context", "model", "clip", "vae", "positive", "negative", "latent")
     FUNCTION = "create_context"
-    CATEGORY = "🪐supernova/Context"
+    CATEGORY = "🪐 Superova/Context"
 
     def create_context(self, context=None, **kwargs):
         ctx = context.copy() if context is not None else {}
@@ -85,7 +85,7 @@ class ContextUpdateBase:
     RETURN_TYPES = ("CONTEXT",)
     RETURN_NAMES = ("context",)
     FUNCTION = "update_context"
-    CATEGORY = "🪐supernova/Context"
+    CATEGORY = "🪐 Superova/Context"
 
     def update_context(self, context=None, **kwargs):
         ctx = context.copy() if context is not None else {}
@@ -106,7 +106,7 @@ class ContextUnpackBase:
     RETURN_TYPES = ("MODEL", "CLIP", "VAE", "CONDITIONING", "CONDITIONING", "LATENT")
     RETURN_NAMES = ("model", "clip", "vae", "positive", "negative", "latent")
     FUNCTION = "unpack_context"
-    CATEGORY = "🪐supernova/Context"
+    CATEGORY = "🪐 Superova/Context"
 
     def unpack_context(self, context):
         if context is None:
@@ -174,7 +174,7 @@ class ContextCreateAdded:
     )
     
     FUNCTION = "execute"
-    CATEGORY = "🪐supernova/Context"
+    CATEGORY = "🪐 Superova/Context"
 
     def execute(self, context=None, **kwargs):
         new_ctx = context.copy() if context is not None else {}
@@ -250,7 +250,7 @@ class ContextUpdateAdded:
     RETURN_TYPES = ("CONTEXT",)
     RETURN_NAMES = ("context",)
     FUNCTION = "update_context"
-    CATEGORY = "🪐supernova/Context"
+    CATEGORY = "🪐 Superova/Context"
 
     def update_context(self, context=None, **kwargs):
         ctx = context.copy() if context is not None else {}
@@ -285,7 +285,7 @@ class ContextUnpackAdded:
         "sampler_name", "scheduler", "denoise", "pos_text", "neg_text", "width", "height", "batch_size"
     )
     FUNCTION = "unpack_context" 
-    CATEGORY = "🪐supernova/Context"
+    CATEGORY = "🪐 Superova/Context"
 
     def unpack_context(self, context=None):
         if context is None:
@@ -337,7 +337,7 @@ class ContextBundle:
     RETURN_TYPES = ("CONTEXT", "CONTEXT", "CONTEXT", "CONTEXT", "CONTEXT")
     RETURN_NAMES = ("context_1", "context_2", "context_3", "context_4", "context_5")
     FUNCTION = "route_contexts"
-    CATEGORY = "🪐supernova/Context"
+    CATEGORY = "🪐 Superova/Context"
 
     def route_contexts(self, context_1=None, context_2=None, context_3=None, context_4=None, context_5=None):
         # 逻辑非常简单：直进直出
@@ -363,7 +363,7 @@ class ContextImage:
     RETURN_TYPES = ("CONTEXT", "IMAGE", "MASK")
     RETURN_NAMES = ("context", "image", "mask")
     FUNCTION = "context_image"
-    CATEGORY = "🪐supernova/Context"
+    CATEGORY = "🪐 Superova/Context"
 
     def context_image(self, context=None, **kwargs):
         ctx = context.copy() if context is not None else {}
@@ -400,7 +400,7 @@ class ContextKSampler:
     RETURN_NAMES = ("context", "seed", "steps", "cfg", "sampler_name", "scheduler", "denoise")
     
     FUNCTION = "context_KSampler"
-    CATEGORY = "🪐supernova/Context"
+    CATEGORY = "🪐 Superova/Context"
 
     def context_KSampler(self, context=None, **kwargs):
         ctx = context.copy() if context is not None else {}
@@ -435,7 +435,7 @@ class ContextPNText:
     RETURN_TYPES = ("CONTEXT", "STRING", "STRING")
     RETURN_NAMES = ("context", "pos_text", "neg_text")
     FUNCTION = "context_PNText"
-    CATEGORY = "🪐supernova/Context"
+    CATEGORY = "🪐 Superova/Context"
 
     def context_PNText(self, context=None, **kwargs):
         ctx = context.copy() if context is not None else {}
@@ -463,7 +463,7 @@ class ContextLatent:
     RETURN_TYPES = ("CONTEXT", "LATENT", "INT", "INT", "INT")
     RETURN_NAMES = ("context", "latent", "width", "height", "batch_size")
     FUNCTION = "context_latent"
-    CATEGORY = "🪐supernova/Context"
+    CATEGORY = "🪐 Superova/Context"
 
     def context_latent(self, context=None, **kwargs):
         ctx = context.copy() if context is not None else {}

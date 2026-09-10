@@ -34,7 +34,7 @@ class FlowControlSwitch20:
     RETURN_TYPES = (ANY,)
     RETURN_NAMES = ("ANY",)
     FUNCTION = "execute"
-    CATEGORY = "🪐supernova/node2.0"
+    CATEGORY = "🪐 Superova/node2.0"
     OUTPUT_NODE = True
 
     @classmethod
@@ -65,7 +65,7 @@ class ImagePreviewBreakpoint20:
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "execute"
-    CATEGORY = "🪐supernova/node2.0"
+    CATEGORY = "🪐 Superova/node2.0"
     OUTPUT_NODE = True
 
     @classmethod
@@ -115,7 +115,7 @@ class ImageCompareBreakpoint20:
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "execute"
-    CATEGORY = "🪐supernova/node2.0"
+    CATEGORY = "🪐 Superova/node2.0"
     OUTPUT_NODE = True
 
     @classmethod
@@ -175,7 +175,7 @@ class ImageCompare4Way20:
 
     RETURN_TYPES = ()
     FUNCTION = "execute"
-    CATEGORY = "🪐supernova/node2.0"
+    CATEGORY = "🪐 Superova/node2.0"
     OUTPUT_NODE = True
 
     @classmethod

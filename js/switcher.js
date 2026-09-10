@@ -1,9 +1,6 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
-const soundUrl = "../audio/sound.mp3";
-const notificationSound = new Audio(soundUrl);
-
 // --- API ---
 async function sendSelection(node, value) {
     try {
@@ -21,13 +18,13 @@ function syncNodeType(node, typeSourceIndex = 0) {
     let newType = "*";
     if (node.inputs) {
         if (node.inputs[typeSourceIndex] && node.inputs[typeSourceIndex].link) {
-             const link = app.graph.links[node.inputs[typeSourceIndex].link];
-             if (link) {
-                 const sourceNode = app.graph.getNodeById(link.origin_id);
-                 if (sourceNode?.outputs[link.origin_slot]) {
-                     newType = sourceNode.outputs[link.origin_slot].type || "*";
-                 }
-             }
+            const link = app.graph.links[node.inputs[typeSourceIndex].link];
+            if (link) {
+                const sourceNode = app.graph.getNodeById(link.origin_id);
+                if (sourceNode?.outputs[link.origin_slot]) {
+                    newType = sourceNode.outputs[link.origin_slot].type || "*";
+                }
+            }
         } else {
             for (const input of node.inputs) {
                 if (input.link) {
@@ -48,14 +45,6 @@ function syncNodeType(node, typeSourceIndex = 0) {
         node.outputs.forEach(o => { o.type = newType; o.label = o.name; });
     }
     return newType;
-}
-
-function playSound() {
-    try {
-        notificationSound.currentTime = 0;
-        notificationSound.volume = 0.5;
-        notificationSound.play().catch(() => {});
-    } catch (e) {}
 }
 
 // --- [新增] 自定义弹窗函数 ---
@@ -107,7 +96,7 @@ function showRenameDialog(title, defaultValue, onOk) {
     const cancelBtn = document.createElement("button");
     cancelBtn.textContent = "Cancel";
     Object.assign(cancelBtn.style, btnStyle, { backgroundColor: "#555", color: "#fff" });
-    
+
     // 确定按钮
     const okBtn = document.createElement("button");
     okBtn.textContent = "Save";
@@ -115,23 +104,23 @@ function showRenameDialog(title, defaultValue, onOk) {
 
     // 6. 事件处理
     const close = () => document.body.removeChild(overlay);
-    
+
     cancelBtn.onclick = close;
-    
+
     const submit = () => {
         onOk(input.value);
         close();
     };
 
     okBtn.onclick = submit;
-    
+
     // 支持回车提交，ESC关闭
     input.onkeydown = (e) => {
         if (e.key === "Enter") submit();
         if (e.key === "Escape") close();
     };
     // 点击遮罩层关闭
-    overlay.onclick = (e) => { if(e.target === overlay) close(); };
+    overlay.onclick = (e) => { if (e.target === overlay) close(); };
 
     // 7. 组装并添加到页面
     btnContainer.appendChild(cancelBtn);
@@ -154,7 +143,7 @@ function configureStaticNode(node, buttonsDef) {
     if (!node.properties.labels) node.properties.labels = {};
 
     // 2. 提取底部 Widget
-    const bottomWidgets = node.widgets ? node.widgets.filter(w => 
+    const bottomWidgets = node.widgets ? node.widgets.filter(w =>
         w.name === "seed" || w.name === "control_after_generate" || w.name === "noise_seed" || w.name === "fixed_seed"
     ) : [];
 
@@ -167,7 +156,7 @@ function configureStaticNode(node, buttonsDef) {
         const displayLabel = savedLabel !== undefined ? savedLabel : b.label;
 
         const w = node.addWidget("button", displayLabel, null, () => sendSelection(node, b.value));
-        
+
         if (savedLabel !== undefined) w.label = savedLabel;
 
         w.supernovaValue = b.value;
@@ -176,15 +165,15 @@ function configureStaticNode(node, buttonsDef) {
 
     // 5. 添加停止按钮
     node.addWidget("button", "⛔ STOP", null, () => sendSelection(node, "stop"));
-    
+
     // 6. 加回底部 Widget
     bottomWidgets.forEach(w => node.widgets.push(w));
 
     // 7. 处理右键菜单 (使用自定义弹窗 showRenameDialog)
     const origGetExtraMenuOptions = node.getExtraMenuOptions;
-    node.getExtraMenuOptions = function(_, options) {
+    node.getExtraMenuOptions = function (_, options) {
         if (origGetExtraMenuOptions) origGetExtraMenuOptions.apply(this, arguments);
-        
+
         options.push(null);
         options.push({ content: "🖊️ Rename Buttons...", disabled: true });
 
@@ -192,14 +181,14 @@ function configureStaticNode(node, buttonsDef) {
             this.widgets.forEach((w) => {
                 if (w.supernovaValue) {
                     const currentLabel = w.label || w.name;
-                    
+
                     options.push({
                         content: `   📝 Rename "${currentLabel}"`,
                         callback: () => {
                             // 使用自定义弹窗替代 prompt
                             showRenameDialog(
-                                `Rename "${currentLabel}"`, 
-                                currentLabel, 
+                                `Rename "${currentLabel}"`,
+                                currentLabel,
                                 (newName) => { // 回调函数
                                     if (newName !== null) {
                                         if (newName.trim() === "") {
@@ -225,7 +214,7 @@ function configureStaticNode(node, buttonsDef) {
 
     // 8. 状态恢复
     const origConfigure = node.onConfigure;
-    node.onConfigure = function() {
+    node.onConfigure = function () {
         if (origConfigure) origConfigure.apply(this, arguments);
         if (this.properties && this.properties.labels && this.widgets) {
             this.widgets.forEach(w => {
@@ -238,8 +227,8 @@ function configureStaticNode(node, buttonsDef) {
 
     // 9. 绑定类型同步
     const origConnectionsChange = node.onConnectionsChange;
-    node.onConnectionsChange = function() {
-        if(origConnectionsChange) origConnectionsChange.apply(this, arguments);
+    node.onConnectionsChange = function () {
+        if (origConnectionsChange) origConnectionsChange.apply(this, arguments);
         syncNodeType(this);
     };
     setTimeout(() => syncNodeType(node), 50);
@@ -256,23 +245,26 @@ function configureStaticNode(node, buttonsDef) {
 app.registerExtension({
     name: "Supernova.FlowNodes",
     setup() {
-        api.addEventListener("supernova_pause_alert", ({ detail }) => { playSound(); });
+        // 👇 这里使用 window.playSupernovaSound?.() 进行安全调用
+        api.addEventListener("supernova_pause_alert", () => {
+            window.playSupernovaSound?.();
+        });
     },
     async nodeCreated(node) {
         switch (node.comfyClass) {
-            case "PauseAndSelectOutput": 
+            case "PauseAndSelectOutput":
                 configureStaticNode(node, [
                     { label: "👉 Output 1", value: "1" },
                     { label: "👉 Output 2", value: "2" }
                 ]);
                 break;
-            case "PauseAndSelectInput": 
+            case "PauseAndSelectInput":
                 configureStaticNode(node, [
                     { label: "👈 Input 1", value: "1" },
                     { label: "👈 Input 2", value: "2" }
                 ]);
                 break;
-            case "PauseAndMatrix": 
+            case "PauseAndMatrix":
                 configureStaticNode(node, [
                     { label: "In 1 ➡️ Out 1", value: "1-1" },
                     { label: "In 1 ↘️ Out 2", value: "1-2" },
@@ -280,7 +272,7 @@ app.registerExtension({
                     { label: "In 2 ➡️ Out 2", value: "2-2" }
                 ]);
                 break;
-            case "MultiInputSelector": 
+            case "MultiInputSelector":
                 configureStaticNode(node, [
                     { label: "▶️ Input 1", value: "input_1" },
                     { label: "▶️ Input 2", value: "input_2" },
@@ -289,7 +281,7 @@ app.registerExtension({
                     { label: "▶️ Input 5", value: "input_5" },
                 ]);
                 break;
-            case "MultiOutputSplitter": 
+            case "MultiOutputSplitter":
                 configureStaticNode(node, [
                     { label: "▶️ Output 1", value: "output_1" },
                     { label: "▶️ Output 2", value: "output_2" },
@@ -297,6 +289,40 @@ app.registerExtension({
                     { label: "▶️ Output 4", value: "output_4" },
                     { label: "▶️ Output 5", value: "output_5" },
                 ]);
+                break;
+            case "PlaySoundAlert":
+                // 1. 添加测试按钮，并在前端做等价的路径字符清理 (鲁棒性加强)
+                node.addWidget("button", "▶️ Test Sound", null, () => {
+                    const useCustWidget = node.widgets.find(w => w.name === "use_custom_path");
+                    const pathWidget = node.widgets.find(w => w.name === "audio_path");
+
+                    if (useCustWidget && useCustWidget.value) {
+                        let p = (pathWidget?.value || "").trim();
+                        // 去除两端引号
+                        p = p.replace(/^["']|["']$/g, "").trim();
+                        // 移除不区分大小写的 "path:" 前缀
+                        if (p.toLowerCase().startsWith("path:")) {
+                            p = p.substring(5).trim();
+                            // 再次移除潜在引号
+                            p = p.replace(/^["']|["']$/g, "").trim();
+                        }
+                        if (p) window.playSupernovaCustomSound?.(p);
+                    } else {
+                        window.playSupernovaSound?.();
+                    }
+                });
+
+                // 2. 绑定连线类型自动同步
+                const origConnectionsChangeSound = node.onConnectionsChange;
+                node.onConnectionsChange = function () {
+                    if (origConnectionsChangeSound) origConnectionsChangeSound.apply(this, arguments);
+                    syncNodeType(this);
+                };
+                setTimeout(() => syncNodeType(node), 50);
+
+                // 3. 微调初始高度
+                const size = node.computeSize();
+                node.setSize([220, Math.max(size[1], 120)]);
                 break;
         }
     }

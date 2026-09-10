@@ -133,7 +133,7 @@ class LoadImageFromReload:
                                )},
                 }
     
-    CATEGORY = "🪐supernova/ImageLoader"
+    CATEGORY = "🪐 Superova/ImageLoader"
     RETURN_TYPES = ("IMAGE", "MASK")
     FUNCTION = "load_image"
 
@@ -200,7 +200,7 @@ class LoadImageWithSubfolders:
             }
         }
 
-    CATEGORY = "🪐supernova/ImageLoader"
+    CATEGORY = "🪐 Superova/ImageLoader"
     RETURN_TYPES = ("IMAGE", "MASK")
     FUNCTION = "load_image"
 
@@ -253,7 +253,7 @@ class LoadImageUnified:
             }
         }
 
-    CATEGORY = "🪐supernova/ImageLoader"
+    CATEGORY = "🪐 Superova/ImageLoader"
     RETURN_TYPES = ("IMAGE", "MASK")
     FUNCTION = "load_image"
 
@@ -328,7 +328,7 @@ class load_image_by_path:
     RETURN_TYPES = ("IMAGE", "MASK")
     RETURN_NAMES = ("image", "mask")
     FUNCTION = "load_all"
-    CATEGORY = "🪐supernova/ImageLoader"
+    CATEGORY = "🪐 Superova/ImageLoader"
 
     def load_all(self, img_path):
         # 1. 基础清理
@@ -444,7 +444,7 @@ class LoadAllImagesFromPathAsList:
     OUTPUT_IS_LIST = (True, True, False) 
     
     FUNCTION = "load_images"
-    CATEGORY = "🪐supernova/ImageLoader"
+    CATEGORY = "🪐 Superova/ImageLoader"
 
     def load_images(self, directory_path, image_load_cap=0, recursive=False):
         directory_path = directory_path.strip().strip('"').strip("'")
