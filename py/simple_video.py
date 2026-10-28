@@ -11,17 +11,105 @@ from server import PromptServer
 from aiohttp import web
 import torchaudio
 import scipy.io.wavfile
+import re
+import urllib.parse
+from pathlib import Path
+
+# 尝试安全导入第三方音频后端
+try:
+    import soundfile as sf
+except ImportError:
+    sf = None
+
+try:
+    import av
+except ImportError:
+    av = None
+
 
 # ========================================================
-# API: 统一预览接口
+# 辅助函数: 鲁棒性路径清洗与音频解码
+# ========================================================
+def sanitize_and_resolve_path(path_str: str) -> Path:
+    if not path_str or not path_str.strip():
+        raise ValueError("【LoadAudioFromPath】音频路径不能为空！")
+
+    p = path_str.strip()
+
+    if p.lower().startswith("file:///"):
+        p = p[8:]
+        p = urllib.parse.unquote(p)
+        if re.match(r"^/[a-zA-Z]:", p):
+            p = p[1:]
+    elif p.lower().startswith("file://"):
+        p = p[7:]
+        p = urllib.parse.unquote(p)
+
+    quote_chars = {'"', "'", "“", "”", "‘", "’", "`"}
+    while len(p) >= 2 and (p[0] in quote_chars or p[-1] in quote_chars):
+        if p[0] in quote_chars:
+            p = p[1:]
+        if p and p[-1] in quote_chars:
+            p = p[:-1]
+        p = p.strip()
+
+    p = os.path.expanduser(p)
+    p = os.path.expandvars(p)
+
+    return Path(p).resolve()
+
+
+def robust_read_audio(file_path: Path):
+    path_str = str(file_path)
+
+    if sf is not None:
+        try:
+            data, sample_rate = sf.read(path_str, dtype="float32")
+            tensor = torch.from_numpy(data)
+            if tensor.ndim == 1:
+                waveform = tensor.unsqueeze(0)
+            else:
+                waveform = tensor.t()
+            return waveform, sample_rate
+        except Exception:
+            pass
+
+    if av is not None:
+        try:
+            with av.open(path_str) as container:
+                stream = container.streams.audio[0]
+                sample_rate = stream.rate
+                frames = []
+                for frame in container.decode(stream):
+                    frames.append(frame.to_ndarray())
+                if frames:
+                    audio_data = np.concatenate(frames, axis=1)
+                    waveform = torch.from_numpy(audio_data).to(torch.float32)
+                    return waveform, sample_rate
+        except Exception:
+            pass
+
+    try:
+        waveform, sample_rate = torchaudio.load(path_str, backend="soundfile")
+        return waveform, sample_rate
+    except Exception:
+        pass
+
+    try:
+        return torchaudio.load(path_str)
+    except Exception:
+        with open(file_path, "rb") as f:
+            return torchaudio.load(f)
+
+
+# ========================================================
+# API: 统一视频预览接口
 # ========================================================
 @PromptServer.instance.routes.get("/simple_video/fetch_preview")
 async def fetch_video_preview(request):
-    # 1. 获取基础参数
     video_path = request.rel_url.query.get("path", "")
     frame_index = int(request.rel_url.query.get("index", -1))
     
-    # 2. 获取处理参数 (用于 index=0 的情况)
     skip = int(request.rel_url.query.get("skip", 0))
     nth = int(request.rel_url.query.get("nth", 1))
     cap = int(request.rel_url.query.get("cap", 0))
@@ -30,9 +118,6 @@ async def fetch_video_preview(request):
     video_path = video_path.strip().strip('"').strip("'")
     if not os.path.exists(video_path): return web.json_response({"error": "Not found"}, status=404)
 
-    # ------------------------------------------------
-    # 模式 A: 原始视频预览 (Index = -1)
-    # ------------------------------------------------
     if frame_index == -1:
         filename = os.path.basename(video_path)
         file_hash = hashlib.md5(video_path.encode()).hexdigest()[:8]
@@ -49,9 +134,6 @@ async def fetch_video_preview(request):
         
         return web.json_response({"filename": temp_filename, "type": "temp", "format": "video"})
 
-    # ------------------------------------------------
-    # 模式 B: 处理后的视频预览 (Index = 0)
-    # ------------------------------------------------
     elif frame_index == 0:
         param_str = f"{video_path}_{skip}_{nth}_{cap}"
         file_hash = hashlib.md5(param_str.encode()).hexdigest()[:8]
@@ -82,14 +164,10 @@ async def fetch_video_preview(request):
                 return web.json_response({"error": "No frames found with current settings"}, status=400)
 
             imageio.mimsave(temp_path, frames_to_save, fps=fps, format="mp4", codec="libx264", quality=5)
-            
             return web.json_response({"filename": temp_filename, "type": "temp", "format": "video"})
         except Exception as e:
              return web.json_response({"error": str(e)}, status=500)
 
-    # ------------------------------------------------
-    # 模式 C: 单帧预览 (Index > 0)
-    # ------------------------------------------------
     else:
         real_index = frame_index - 1
         file_hash = hashlib.md5(f"{video_path}_{real_index}".encode()).hexdigest()[:8]
@@ -115,6 +193,43 @@ async def fetch_video_preview(request):
             return web.json_response({"filename": temp_filename, "type": "temp", "format": "image"})
         except Exception as e:
             return web.json_response({"error": str(e)}, status=500)
+
+
+# ========================================================
+# API: 音频实时输入预览接口（仅保留单份定义，严禁重复）
+# ========================================================
+@PromptServer.instance.routes.get("/simple_video/fetch_audio_preview")
+async def fetch_audio_preview(request):
+    audio_path = request.rel_url.query.get("path", "")
+    if not audio_path:
+        return web.json_response({"error": "No path"}, status=400)
+    
+    try:
+        resolved_path = sanitize_and_resolve_path(audio_path)
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=400)
+
+    if not resolved_path.exists() or not resolved_path.is_file():
+        return web.json_response({"error": "File not found"}, status=404)
+
+    path_str = str(resolved_path)
+    try:
+        temp_dir = folder_paths.get_temp_directory()
+        mtime = os.path.getmtime(path_str)
+        hash_str = hashlib.md5(f"{path_str}_{mtime}".encode()).hexdigest()[:10]
+        preview_filename = f"audio_preview_{hash_str}.wav"
+        preview_path = os.path.join(temp_dir, preview_filename)
+
+        if not os.path.exists(preview_path):
+            waveform, sample_rate = robust_read_audio(resolved_path)
+            preview_np = waveform[0].detach().cpu().numpy()
+            if preview_np.ndim == 2:
+                preview_np = preview_np.T
+            scipy.io.wavfile.write(preview_path, int(sample_rate), preview_np)
+
+        return web.json_response({"filename": preview_filename, "type": "temp"})
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500)
 
 
 # ========================================================
@@ -153,18 +268,15 @@ class SimpleVideoSaver:
     CATEGORY = "🪐 Superova/video"
 
     def save_video(self, image, frame_rate, filename_prefix, format, quality, audio=None, sound_file="sound.mp3", volume=1.0):
-        # 1. 替换时间戳占位符
         now = datetime.now()
         filename_prefix = filename_prefix.replace("{date}", now.strftime("%Y-%m-%d"))
         filename_prefix = filename_prefix.replace("{time}", now.strftime("%H-%M-%S"))
         filename_prefix = filename_prefix.replace("{datetime}", now.strftime("%Y-%m-%d_%H-%M-%S"))
 
-        # 2. 获取路径信息
         full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(
             filename_prefix, self.output_dir, image[0].shape[1], image[0].shape[0]
         )
 
-        # >>> 修复1：确保文件夹存在 <<<
         if not os.path.exists(full_output_folder):
             try:
                 os.makedirs(full_output_folder, exist_ok=True)
@@ -176,7 +288,6 @@ class SimpleVideoSaver:
         audio_path_arg = None
         temp_audio_file = None
         
-        # 3. 处理音频
         if audio is not None:
             try:
                 waveform = audio.get("waveform")
@@ -184,17 +295,11 @@ class SimpleVideoSaver:
                 if waveform is not None:
                     temp_audio_file = os.path.join(folder_paths.get_temp_directory(), f"temp_audio_{filename}_{counter}.wav")
                     if waveform.dim() == 3: waveform = waveform[0]
-                # --- 修复开始：使用 scipy 替代 torchaudio.save ---
-                # 1. 转换成 numpy
-                audio_data = waveform.detach().cpu().numpy()
-                # 2. torchaudio 格式是 [channels, samples], scipy 格式是 [samples, channels]
-                if audio_data.ndim == 2:
-                    audio_data = audio_data.T
-                # 3. 写入临时文件
-                scipy.io.wavfile.write(temp_audio_file, sample_rate, audio_data)
-                # --- 修复结束 ---
-                audio_path_arg = temp_audio_file
-
+                    audio_data = waveform.detach().cpu().numpy()
+                    if audio_data.ndim == 2:
+                        audio_data = audio_data.T
+                    scipy.io.wavfile.write(temp_audio_file, int(sample_rate), audio_data)
+                    audio_path_arg = temp_audio_file
             except Exception as e:
                 print(f"[SimpleVideoSaver] Audio processing error: {e}")
 
@@ -232,13 +337,10 @@ class SimpleVideoSaver:
 
             if format not in ["image/gif", "image/webp", "image/apng"]:
                 writer_kwargs["fps"] = frame_rate
-                writer_kwargs["macro_block_size"] = 1 # 允许任意尺寸的宽高
-                if audio_path_arg: 
-                    writer_kwargs["audio_path"] = audio_path_arg  # 必须是 audio_path
-                    writer_kwargs["audio_codec"] = "aac" 
-                
-                # 关键修复：防止长宽不是16倍数导致的报错
                 writer_kwargs["macro_block_size"] = 1 
+                if audio_path_arg: 
+                    writer_kwargs["audio_path"] = audio_path_arg
+                    writer_kwargs["audio_codec"] = "aac" 
 
             if "libx" in writer_kwargs.get("codec", ""):
                 crf = 19 if quality == "high" else 23 if quality == "medium" else 28
@@ -246,8 +348,6 @@ class SimpleVideoSaver:
             elif "nvenc" in writer_kwargs.get("codec", ""):
                 writer_kwargs["ffmpeg_params"] = ["-rc", "vbr", "-cq", "19" if quality=="high" else "23"]
 
-            # >>> 修复2：只使用文件名和计数器，不再拼接 subfolder <<<
-            # 之前是 f"{filename}_{counter:05}_{subfolder}"，这里的 subfolder 会导致路径错误
             file_name = f"{filename}_{counter:05}"
             full_path = os.path.join(full_output_folder, file_name + f".{ext}")
 
@@ -399,11 +499,98 @@ class SimpleLoadVideoPath:
                 "result": (video_tensor, count, int(fps), video_tensor.shape[2], video_tensor.shape[1], audio_output)
             }
 
+
+# ========================================================
+# 节点 3: LoadAudioFromPath
+# ========================================================
+class LoadAudioFromPath:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "audio_path": (
+                    "STRING",
+                    {
+                        "default": "",
+                        "multiline": False,
+                        "placeholder": "粘贴音频文件绝对路径或相对路径（支持带引号、空格、中文）",
+                    },
+                ),
+            }
+        }
+
+    RETURN_TYPES = ("AUDIO", "STRING")
+    RETURN_NAMES = ("audio", "cleaned_path")
+    FUNCTION = "load_audio"
+    CATEGORY = "🪐 Superova/video"
+    OUTPUT_NODE = True
+
+    def load_audio(self, audio_path: str):
+        resolved_path = sanitize_and_resolve_path(audio_path)
+        path_str = str(resolved_path)
+
+        if not resolved_path.exists():
+            raise FileNotFoundError(f"【LoadAudioFromPath】未找到文件，请检查路径：\n{path_str}")
+
+        if not resolved_path.is_file():
+            raise IsADirectoryError(f"【LoadAudioFromPath】指定的路径是一个目录：\n{path_str}")
+
+        try:
+            waveform, sample_rate = robust_read_audio(resolved_path)
+        except Exception as e:
+            raise RuntimeError(
+                f"【LoadAudioFromPath】无法解码音频文件：{path_str}\n"
+                f"错误详情: {str(e)}"
+            )
+
+        if waveform.ndim == 2:
+            waveform = waveform.unsqueeze(0)
+        elif waveform.ndim == 1:
+            waveform = waveform.unsqueeze(0).unsqueeze(0)
+
+        waveform = waveform.to(torch.float32)
+
+        audio_dict = {
+            "waveform": waveform,
+            "sample_rate": int(sample_rate),
+        }
+
+        temp_dir = folder_paths.get_temp_directory()
+        mtime = os.path.getmtime(path_str)
+        hash_str = hashlib.md5(f"{path_str}_{mtime}".encode()).hexdigest()[:10]
+        preview_filename = f"audio_preview_{hash_str}.wav"
+        preview_path = os.path.join(temp_dir, preview_filename)
+
+        if not os.path.exists(preview_path):
+            try:
+                preview_np = waveform[0].detach().cpu().numpy()
+                if preview_np.ndim == 2:
+                    preview_np = preview_np.T
+                scipy.io.wavfile.write(preview_path, int(sample_rate), preview_np)
+            except Exception as e:
+                print(f"[LoadAudioFromPath] 生成试听临时文件失败: {e}")
+
+        return {
+            "ui": {
+                "audio": [
+                    {
+                        "filename": preview_filename,
+                        "subfolder": "",
+                        "type": "temp"
+                    }
+                ]
+            },
+            "result": (audio_dict, path_str)
+        }
+
+
 NODE_CLASS_MAPPINGS = { 
     "SimpleVideoCombine": SimpleVideoSaver, 
-    "SimpleLoadVideoPath": SimpleLoadVideoPath 
+    "SimpleLoadVideoPath": SimpleLoadVideoPath, 
+    "LoadAudioFromPath": LoadAudioFromPath
 }
 NODE_DISPLAY_NAME_MAPPINGS = { 
     "SimpleVideoCombine": "Simple Video Saver 🔊🎞️", 
-    "SimpleLoadVideoPath": "Simple Video Loader (with path) 🔗📼" 
+    "SimpleLoadVideoPath": "Simple Video Loader (with path) 🔗📼",
+    "LoadAudioFromPath": "Load Audio (with Path) 🎧" 
 }

@@ -1724,5 +1724,16 @@
             }
         }
     },
+    "LoadImageFromTemp": {
+        "display_name": "从临时位置加载图片 ⏳",
+        "inputs": {
+            "Auto-refresh after generation": {
+                "name": "生成后自动刷新"
+            },
+            "refresh": {
+                "name": "刷新"
+            }
+        }
+    },
     "supernova": "🪐超新星节点"
 }
